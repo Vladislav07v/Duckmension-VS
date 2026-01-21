@@ -1,2 +1,2 @@
 # Duckmension-VS
-A multiplatform multiplayer platformer game starring a duck
+TODO: Write an actual readme file
