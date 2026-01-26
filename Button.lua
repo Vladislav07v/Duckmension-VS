@@ -39,19 +39,22 @@ function mt:onTouch(other)
   -- only toggle on initial contact (debounce)
   if self.down then return end
   self.down = true
-  self: setAnim('pushed')
+  self:setAnim('pushed')
 
-  -- find all button_floor instances in the world and toggle their presence
+  -- find all button_floor instances in the world; only act on floors with matching id.
+  -- Strict equality: floors with id == self.id will be targeted. (nil matches nil.)
   local floors = self.world:find('all', 'is_button_floor')
   if self.floor_active == nil then self.floor_active = true end
 
   if self.floor_active then
-    -- remove all floors and remember them so we can re-add later
-    self.removed_floors = {}
+    -- remove matching floors and remember them so we can re-add later
+    self.removed_floors = self.removed_floors or {}
     for _, f in ipairs(floors) do
-      -- remove from world but keep the object reference
-      self.world:remove(f)
-      self.removed_floors[#self.removed_floors + 1] = f
+      if f.id == self.id then
+        -- remove from world but keep the object reference
+        self.world:remove(f)
+        self.removed_floors[#self.removed_floors + 1] = f
+      end
     end
     self.floor_active = false
   else
@@ -67,7 +70,8 @@ function mt:onTouch(other)
 end
 
 return {
-  new = function(x, y, game_state)
+  -- new signature accepts optional opts table as 4th arg (opts.Id)
+  new = function(x, y, game_state, opts)
     local h = setmetatable({
       is_touchable = true,
       x = x,
@@ -81,9 +85,10 @@ return {
       down = false,
       floor_active = true,
       removed_floors = {},
-      z_index = 5
+      z_index = 5,
+      id = opts and opts.Id or nil, -- the button id to target floors by (strict equality)
     }, mt)
-    h: setAnim('idle')
+    h:setAnim('idle')
     return h
   end
 }

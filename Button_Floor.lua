@@ -17,14 +17,16 @@ function mt:toggle()
 end
 
 return {
-  new = function(x, y, starts_solid)
+  -- new accepts optional opts as 4th arg; opts.Id will be attached to the floor
+  new = function(x, y, starts_solid, opts)
     return setmetatable({
       is_button_floor = true,
       x = x,
       y = y,
       is_solid = (starts_solid == nil) and true or starts_solid,
       w = const.tilesize,
-      h = const.tilesize
+      h = const.tilesize,
+      id = opts and opts.Id or nil,
     }, mt)
   end
 }
