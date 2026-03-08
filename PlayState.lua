@@ -6,7 +6,7 @@ local Spikes = require('Spikes')
 local duck_assets = require('assets_duck')
 local Assets = require('assets_shared')
 
-local MAX_LEVEL = 25
+local MAX_LEVEL = 29
 
 local mt = {}
 mt.__index = mt

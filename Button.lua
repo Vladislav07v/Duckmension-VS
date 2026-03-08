@@ -79,8 +79,8 @@ return {
       w = const.tilesize,
       h = const.tilesize,
       anims = {
-        idle = Animation.new(13, 1, 1),
-        pushed = Animation.new(13, 8, 0.75)},
+        idle = Animation.new(17, 1, 1),
+        pushed = Animation.new(17, 8, 0.75)},
       world = (game_state and game_state.world) or nil,
       down = false,
       floor_active = true,

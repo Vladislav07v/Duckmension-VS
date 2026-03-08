@@ -39,6 +39,10 @@ local TILES_TYPES = {
   [8] = require('Button_Floor'),
   [81] = require('Button_Floor', { Id = 1 }),
   [82] = require('Button_Floor', { Id = 2 }),
+  [91] = require('PelletLauncher', { Direction = 1 }),
+  [92] = require('PelletLauncher', { Direction = 2 }),
+  [93] = require('PelletLauncher', { Direction = 3 }),
+  [94] = require('PelletLauncher', { Direction = 4 }),
   --[7] = require('Trampoline', is_moving == true),
   [21] = require('Enemy'),
 }
