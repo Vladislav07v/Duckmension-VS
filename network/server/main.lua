@@ -95,8 +95,4 @@ end
 
 print "Thank you."
 
-function love.draw()
-  love.graphics.print("Client connected")
-end
-
 -- and that the end of the udp server example.
