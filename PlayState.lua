@@ -6,7 +6,7 @@ local Spikes = require('Spikes')
 local duck_assets = require('assets_duck')
 local Assets = require('assets_shared')
 
-local MAX_LEVEL = 25
+local MAX_LEVEL = 39
 
 local mt = {}
 mt.__index = mt
@@ -93,6 +93,9 @@ end
 
 return {
   new = function(level_num)
+    local Portal = require('Portal')
+    Portal.clearPortalManager()
+    
     local state = setmetatable({ name = 'Play_State', score = 0 }, mt)
     state.world = World.new()
     state.level = Level.new('map_' .. level_num, state)
