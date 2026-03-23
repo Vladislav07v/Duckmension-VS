@@ -22,10 +22,17 @@ function GUI:draw()
 end
 
 function GUI:displayCoins()
+  if love.console=="3DS" then
    love.graphics.setColor(0,0,0,0.5)
    love.graphics.draw(self.coins.img, self.coins.x - 14, self.coins.y, 0, self.coins.scale, self.coins.scale)
    love.graphics.setColor(1,1,1,1)
    love.graphics.draw(self.coins.img, self.coins.x - 12, self.coins.y - 2, 0, self.coins.scale, self.coins.scale)
+ else
+   love.graphics.setColor(0,0,0,0.5)
+   love.graphics.draw(self.coins.img, self.coins.x - 754, self.coins.y, 0, self.coins.scale, self.coins.scale)
+   love.graphics.setColor(1,1,1,1)
+   love.graphics.draw(self.coins.img, self.coins.x - 752, self.coins.y - 2, 0, self.coins.scale, self.coins.scale)
+  end
 end
 
 function GUI:displayCoinText()
@@ -33,7 +40,11 @@ function GUI:displayCoinText()
   local x = self.coins.x + self.coins.width * self.coins.scale
   local y = self.coins.y + self.coins.height / 2 * self.coins.scale - self.font:getHeight() / 2
   local doors = GameState.doors_passed or 0
-  love.graphics.print(":".. doors, x-12, y-2)
+  if love.console=="3DS" then
+    love.graphics.print(":".. doors, x-12, y-2)
+  else
+    love.graphics.print(":".. doors, x-772, y+23)
+  end
 end
 
 function GUI:displayDuckCoords()

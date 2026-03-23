@@ -12,11 +12,34 @@ Network.port = 12345
 Network.updaterate = 0.1
 Network.accumulator = 0
 Network.world = {} -- remote entities state
+Network.encryption_key = "default_key"
+
+-- Simple XOR encryption function
+local function simpleEncrypt(text, key)
+  local encrypted = ""
+  key = key or "default_key"
+  for i = 1, #text do
+    local char = text:sub(i, i)
+    local keyChar = key:sub((i - 1) % #key + 1, (i - 1) % #key + 1)
+    encrypted = encrypted .. string.char(bit.bxor(string.byte(char), string.byte(keyChar)))
+  end
+  return encrypted
+end
+
+-- Convert encrypted binary to hex string for display
+local function toHex(str)
+  local hex = ""
+  for i = 1, #str do
+    hex = hex .. string.format("%02x", string.byte(str:sub(i, i)))
+  end
+  return hex
+end
 
 -- Initialize network connection
-function Network:init(address, port)
+function Network:init(address, port, encryption_key)
   self.address = address or "localhost"
   self.port = port or 12345
+  self.encryption_key = encryption_key or "default_key"
   
   self.udp = socket.udp()
   self.udp:settimeout(0)
@@ -29,11 +52,18 @@ function Network:init(address, port)
   self.enabled = true
   self.accumulator = 0
   
+  -- Encrypt entity ID for initial message
+  local encrypted_entity = simpleEncrypt(self.entity, self.encryption_key)
+  local encrypted_hex = toHex(encrypted_entity)
+  
   -- Send initial position (will be filled in by game)
-  local dg = string.format("%s %s %d %d", self.entity, 'at', 320, 240)
+  local dg = string.format("%s %s %d %d", encrypted_hex, 'at', 320, 240)
   self.udp:send(dg)
   
-  print("Network initialized. Entity ID: " .. self.entity)
+  print("Network initialized.")
+  print("  Server: " .. self.address .. ":" .. self.port)
+  print("  Entity ID: " .. self.entity .. " (encrypted: " .. encrypted_hex .. ")")
+  print("  Encryption key: " .. self.encryption_key)
 end
 
 -- Send duck position update
@@ -43,11 +73,14 @@ function Network:sendDuckPosition(x, y)
   self.accumulator = self.accumulator + (self.lastDt or 0.016)
   
   if self.accumulator > self.updaterate then
-    local dg = string.format("%s %s %f %f", self.entity, 'at', x, y)
+    local encrypted_entity = simpleEncrypt(self.entity, self.encryption_key)
+    local encrypted_hex = toHex(encrypted_entity)
+    
+    local dg = string.format("%s %s %f %f", encrypted_hex, 'at', x, y)
     self.udp:send(dg)
     
     -- Request world state update
-    local dg_update = string.format("%s %s $", self.entity, 'update')
+    local dg_update = string.format("%s %s $", encrypted_hex, 'update')
     self.udp:send(dg_update)
     
     self.accumulator = self.accumulator - self.updaterate

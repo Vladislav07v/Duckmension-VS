@@ -31,7 +31,7 @@ local TILES_TYPES = {
   [2] = require('ToggleFloor'),
   [3] = require('ReverseToggleFloor'),
   [4] = require('Door'),
-  [5] = require('Spikes'),
+  --[5] = require('Spikes'),
   [6] = require('Trampoline'),
   [7] = require('Button'),
   [71] = require('Button', { Id = 1 }),
@@ -43,8 +43,17 @@ local TILES_TYPES = {
   [92] = require('PelletLauncher', { Direction = 2 }),
   [93] = require('PelletLauncher', { Direction = 3 }),
   [94] = require('PelletLauncher', { Direction = 4 }),
+  [11] = require('Portal', { Direction = 1, PairId = 1 }),
+  [12] = require('Portal', { Direction = 1, PairId = 1 }),
+  [13] = require('Portal', { Direction = 2, PairId = 1 }),
+  [14] = require('Portal', { Direction = 3, PairId = 1 }),
+  [14] = require('Portal', { Direction = 4, PairId = 1 }),
+  [21] = require('Portal', { Direction = 1, PairId = 2 }),
+  [22] = require('Portal', { Direction = 2, PairId = 2 }),
+  [23] = require('Portal', { Direction = 3, PairId = 2 }),
+  [24] = require('Portal', { Direction = 4, PairId = 2 }),
   --[7] = require('Trampoline', is_moving == true),
-  [21] = require('Enemy'),
+  --[21] = require('Enemy'),
 }
 
 return {
