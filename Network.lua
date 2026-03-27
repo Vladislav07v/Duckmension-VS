@@ -2,6 +2,8 @@
 -- Integrates with the game's GameState and World systems
 
 local socket = require "socket"
+local Animation = require('Animation')
+local assets_duck = require('assets_duck')
 
 local Network = {}
 Network.enabled = false
@@ -13,6 +15,7 @@ Network.updaterate = 0.1
 Network.accumulator = 0
 Network.world = {} -- remote entities state
 Network.encryption_key = "default_key"
+Network.remote_ducks = {} -- track remote duck animations
 
 -- Simple XOR encryption function
 local function simpleEncrypt(text, key)
@@ -93,6 +96,13 @@ function Network:update(dt)
   
   self.lastDt = dt
   
+  -- Update animations for all remote ducks
+  for ent_id, duck_data in pairs(self.remote_ducks) do
+    if duck_data.anim then
+      duck_data.anim:update(dt)
+    end
+  end
+  
   repeat
     local data, msg = self.udp:receive()
     
@@ -105,6 +115,14 @@ function Network:update(dt)
         if x and y then
           x, y = tonumber(x), tonumber(y)
           self.world[ent] = { x = x, y = y }
+          
+          -- Initialize animation for this remote duck if not exists
+          if not self.remote_ducks[ent] then
+            self.remote_ducks[ent] = {
+              anim = Animation.new(1, 8, 1), -- idle animation
+              direction = 1 -- 1 for right, -1 for left
+            }
+          end
         end
       elseif cmd == 'move' then
         -- Handle move commands if needed
@@ -127,17 +145,29 @@ function Network:update(dt)
   until not data
 end
 
--- Draw remote entities (optional visualization)
+-- Draw remote entities as semi-transparent animated ducks
 function Network:draw()
   if not self.enabled then return end
   
-  love.graphics.setColor(1, 0, 0, 0.7)
+  love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Semi-transparent white
+  
   for ent, pos in pairs(self.world) do
     if ent ~= self.entity then
-      love.graphics.print("P:" .. ent, pos.x, pos.y)
+      local duck_data = self.remote_ducks[ent]
+      if duck_data and duck_data.anim then
+        -- Draw the duck sprite with the current animation frame
+        -- Using the same sprite and approach as the local duck
+        local frame = duck_data.anim:getFrame()
+        if duck_data.direction == -1 then
+          assets_duck.qdraw(frame, pos.x + 32 - 6, pos.y, 0, -1, 1)
+        else
+          assets_duck.qdraw(frame, pos.x - 6, pos.y)
+        end
+      end
     end
   end
-  love.graphics.setColor(1, 1, 1, 1)
+  
+  love.graphics.setColor(1, 1, 1, 1) -- Reset to opaque
 end
 
 -- Cleanup
@@ -146,6 +176,7 @@ function Network:shutdown()
     self.udp:close()
   end
   self.enabled = false
+  self.remote_ducks = {}
 end
 
 return Network
