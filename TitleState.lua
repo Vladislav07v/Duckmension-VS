@@ -21,7 +21,10 @@ end
 function mt:update(dt)
   self.player:update()
   if self.player:pressed("start") then
-    GameState.setCurrent('Play', 1)
+    GameState.setCurrent('Play', 0)
+  end
+  if self.player:pressed("change") then
+    GameState.setCurrent('Settings')
   end
 end
 
@@ -34,7 +37,8 @@ function mt:draw(screen)
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setFont(self.title_font)
     love.graphics.draw(self.bottom_image, 0, 0)
-    love.graphics.printf("Press (jump) to Start", 0, love.graphics.getHeight()-65, love.graphics.getWidth()-70, "center")
+    love.graphics.printf("Press (jump) to Start", 0, love.graphics.getHeight()-130, love.graphics.getWidth()-70, "center")
+    love.graphics.printf("Press (change) for Network", 0, love.graphics.getHeight()-65, love.graphics.getWidth()-70, "center")
   end
 end
 
@@ -46,6 +50,7 @@ return {
     state.player = baton.new {
       controls = {
         start = {'key:z','button:b','mouse:1'},
+        change = {'key:x','button:a'},
       },
       joystick = love.joystick.getJoysticks()[1],
       deadzone = .33,

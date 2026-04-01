@@ -1,8 +1,9 @@
---require('nest-master/nest').init({console = "3ds", emulateJoystick="true", scale=3})
+--require('nest-master/nest').init({console = "3ds", emulateJoystick="true", scale=2})
 local GameState  = require('GameState')
 local TitleState = require('TitleState')
 local GUI = require('gui')
 local Music = require('Music')
+local Network = require('Network')
 
 -- Fixed timestep params
 local PHYSICS_STEP = 1 / 30         -- physics tick (seconds)
@@ -12,6 +13,10 @@ local accumulator = 0
 function love.load()
   GameState.setCurrent('Title')
   love.graphics.setDefaultFilter('nearest', 'nearest')
+  
+  -- Uncomment the line below to enable networking
+  Network:init("localhost", 12345)
+  love.keyboard.setTextInput(false)
 end
 
 function love.update(dt)
@@ -37,23 +42,92 @@ function love.update(dt)
   -- run once-per-frame non-physics updates (music, UI timers if desired)
   Music:update()
   
+  -- Network update
+  Network:update(dt)
+  
+  -- Send duck position to network if playing
+  local current_state = GameState.getCurrent()
+  if current_state and current_state.name == 'Play_State' then
+    local duck = GameState.getDuckObject()
+    if duck then
+      Network:sendDuckPosition(duck.x, duck.y)
+    end
+  end
+  
+  function love.keypressed(key)
+    local current_state = GameState.getCurrent()
+    if current_state and current_state.keypressed then
+    current_state:keypressed(key)
+    end
+  end
+
+  function love.mousepressed(x, y, button)
+    local current_state = GameState.getCurrent()
+    if current_state and current_state.mousepressed then
+      current_state:mousepressed(x, y, button)
+    end
+  end
+
+  function love.touchpressed(id, x, y, dx, dy, pressure)
+    local current_state = GameState.getCurrent()
+    if current_state and current_state.touchpressed then
+      current_state:touchpressed(id, x, y, dx, dy, pressure)
+    end
+  end
 end
 
 function love.draw(screen)
-  love.graphics.scale(3, 3)
-  local currentState = GameState.getCurrent()
-  if currentState and currentState.background then
-    love.graphics.draw(currentState.background)
-  end
+  if love._console =="3DS" then
+    love.graphics.scale(1, 1)
+    local currentState = GameState.getCurrent()
+    if currentState and currentState.background then
+      love.graphics.draw(currentState.background)
+    end
 
-  if currentState and currentState.draw then
-    currentState:draw(screen)
-  end
+    if currentState and currentState.draw then
+      currentState:draw(screen)
+    end
 
-  if screen == "bottom" and currentState and currentState.bottombg then
-    love.graphics.setColor(1,1,1,1)
-    love.graphics.draw(currentState.bottombg)
-    GUI:draw()
-    love.graphics.print(love.timer.getFPS())
+    if screen == "bottom" and currentState and currentState.bottombg then
+      love.graphics.setColor(1,1,1,1)
+      love.graphics.draw(currentState.bottombg)
+      GUI:draw()
+      love.graphics.print(love.timer.getFPS())
+    end
+  elseif love._console=="WiiU" then
+    love.graphics.scale(3, 3)
+    local currentState = GameState.getCurrent()
+    if currentState and currentState.background then
+      love.graphics.draw(currentState.background)
+    end
+
+    if currentState and currentState.draw then
+      currentState:draw(screen)
+    end
+
+    if screen == "bottom" and currentState and currentState.bottombg then
+      love.graphics.setColor(1,1,1,1)
+      love.graphics.draw(currentState.bottombg)
+      GUI:draw()
+      love.graphics.print(love.timer.getFPS())
+    end
+  else
+    love.graphics.scale(3, 3)
+    local currentState = GameState.getCurrent()
+    if currentState and currentState.background then
+      love.graphics.draw(currentState.background)
+      GUI:draw()
+      love.graphics.print(love.timer.getFPS())
+    end
+
+    if currentState and currentState.draw then
+      currentState:draw(screen)
+    end
   end
+  -- Draw network entities
+  Network:draw()
+end
+
+function love.quit()
+  Network:shutdown()
 end

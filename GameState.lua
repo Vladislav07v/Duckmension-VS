@@ -2,7 +2,8 @@ local GameState = {}
 GameState.doors_passed = 0
 
 function GameState.setCurrent(state_name, args)
-  GameState.next_current = require(state_name .. 'State').new(args)
+  local parent = GameState.current
+  GameState.next_current = require(state_name .. 'State').new(args, parent)
   if not GameState.current then
     GameState.update()
   end
