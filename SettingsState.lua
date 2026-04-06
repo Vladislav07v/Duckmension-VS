@@ -7,13 +7,19 @@ local mt = {}
 mt.__index = mt
 
 local fields = {
-  address = { x=20, y=60, w=300, h=30 },
-  port =    { x=20, y=130, w=120, h=30 },
-  key =     { x=20, y=200, w=300, h=30 },
+  address = { x=20, y=40, w=200, h=30 },
+  port =    { x=20, y=90, w=120, h=30 },
+  key =     { x=20, y=140, w=200, h=30 },
 }
 
 function mt:update(dt)
   self.player:update()
+  
+  -- Network update
+  if self.network_instance then
+    self.network_instance:update()
+  end
+  
   if self.player:pressed("back") then
     love.keyboard.setTextInput(false)
     GameState.setCurrent('Title')
@@ -33,7 +39,8 @@ function mt:draw(screen)
 
   -- Address
   love.graphics.setColor(1,1,1,1)
-  love.graphics.print("Server Address:", fields.address.x, fields.address.y - 25)
+  love.graphics.print(":Server", fields.address.x+203, fields.address.y)
+  love.graphics.print("Address", fields.address.x+203, fields.address.y+15)
   love.graphics.setColor(self.active_field == "address" and {1,1,0,1} or {1,1,1,1})
   love.graphics.rectangle("line", fields.address.x, fields.address.y, fields.address.w, fields.address.h)
   love.graphics.setColor(1,1,1,1)
@@ -41,7 +48,7 @@ function mt:draw(screen)
 
   -- Port
   love.graphics.setColor(1,1,1,1)
-  love.graphics.print("Port:", fields.port.x, fields.port.y - 25)
+  love.graphics.print(":Port", fields.port.x+123, fields.port.y+6)
   love.graphics.setColor(self.active_field == "port" and {1,1,0,1} or {1,1,1,1})
   love.graphics.rectangle("line", fields.port.x, fields.port.y, fields.port.w, fields.port.h)
   love.graphics.setColor(1,1,1,1)
@@ -49,18 +56,39 @@ function mt:draw(screen)
 
   -- Encryption Key
   love.graphics.setColor(1,1,1,1)
-  love.graphics.print("Encryption Key:", fields.key.x, fields.key.y - 25)
+  love.graphics.print(":Encryption", fields.key.x+203, fields.key.y)
+  love.graphics.print("Key", fields.key.x+203, fields.key.y+15)
   love.graphics.setColor(self.active_field == "key" and {1,1,0,1} or {1,1,1,1})
   love.graphics.rectangle("line", fields.key.x, fields.key.y, fields.key.w, fields.key.h)
   love.graphics.setColor(1,1,1,1)
   love.graphics.print(string.rep("*", #self.encryption_key), fields.key.x + 10, fields.key.y + 5)
 
+  -- Connection Status and Error Message
+  love.graphics.setFont(self.small_font)
+  local status_y = fields.key.y + 50
+  
+  if self.network_instance and self.network_instance:isConnected() then
+    love.graphics.setColor(0.2, 1, 0.2, 1)
+    love.graphics.print("Status: Connected & Verified", 20, status_y)
+  elseif self.network_instance and self.network_instance.connected then
+    love.graphics.setColor(1, 1, 0.2, 1)
+    love.graphics.print("Status: Connected (waiting for verification...)", 20, status_y)
+  else
+    love.graphics.setColor(1, 0.2, 0.2, 1)
+    love.graphics.print("Status: Disconnected", 20, status_y)
+  end
+  
+  -- Display error message if any
+  if self.network_instance and self.network_instance:getLastError() then
+    love.graphics.setColor(1, 0.5, 0.5, 1)
+    love.graphics.print("Error: " .. self.network_instance:getLastError(), 20, status_y + 25)
+  end
+
   -- Instructions
   love.graphics.setColor(0.7, 0.7, 0.7, 1)
-  love.graphics.setFont(self.small_font)
-  love.graphics.print("Click a field to edit", 20, fields.key.y + 50)
-  love.graphics.print("Press (jump) to connect", 20, fields.key.y + 75)
-  love.graphics.print("Press (back) to return to title", 20, fields.key.y + 100)
+  love.graphics.print("Click a field to edit", 20, status_y + 60)
+  love.graphics.print("Press (jump) to connect", 20, status_y + 85)
+  love.graphics.print("Press (back) to return to title", 20, status_y + 110)
 end
 
 function mt:mousepressed(x, y, button)
@@ -137,12 +165,36 @@ function mt:textinput(text)
 end
 
 function mt:connectToServer()
-  local port = tonumber(self.server_port) or 12345
-  Network:init(self.server_address, port, self.encryption_key)
-  print("Connecting to " .. self.server_address .. ":" .. port)
-  print("Encryption key set to: " .. self.encryption_key)
-  love.keyboard.setTextInput(false)
-  GameState.setCurrent('Title')
+  print("\n" .. string.rep("=", 80))
+  print("[SettingsState] Connect button pressed")
+  print(string.format("  Address field: '%s'", self.server_address))
+  print(string.format("  Port field: '%s'", self.server_port))
+  print(string.format("  Key field: '%s'", self.encryption_key))
+  print(string.rep("=", 80))
+  
+  -- Validate inputs
+  if not self.server_address or self.server_address == "" then
+    print("[SettingsState] ERROR: Address is empty!")
+    return
+  end
+  
+  if not self.server_port or self.server_port == "" then
+    print("[SettingsState] ERROR: Port is empty!")
+    return
+  end
+  
+  local port = tonumber(self.server_port)
+  if not port then
+    print(string.format("[SettingsState] ERROR: Port '%s' is not a valid number!", self.server_port))
+    return
+  end
+  
+  if not self.network_instance then
+    self.network_instance = Network
+  end
+  
+  -- Initialize network with validated parameters
+  self.network_instance:init(self.server_address, port, self.encryption_key)
 end
 
 function mt:trigger() end
@@ -153,13 +205,14 @@ return {
       name = 'Settings_State',
       server_address = "localhost",
       server_port = "12345",
-      encryption_key = "",
-      active_field = nil
+      encryption_key = "default_key",
+      active_field = nil,
+      network_instance = nil,
     }, mt)
 
     state.player = baton.new {
       controls = {
-        jump = {'key:z','button:b'},
+        jump = {'key:return','button:b'},
         back = {'key:escape','button:back'},
         backspace = {'key:backspace','button:a'},
       },

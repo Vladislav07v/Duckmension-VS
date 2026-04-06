@@ -21,18 +21,37 @@ function mt:update(dt)
       self.background = Assets.get('bg_dark')
     end
     if not self.bottombg then
-      -- previous code used invbg (undefined). Use dark background as bottom by default.
       self.bottombg = Assets.get('bg_ducks')
     end
     GUI:load()
     self.sleep = 0
     self.is_light_dimension = false
+    
+    -- Only initialize timed level on first creation, not on re-entry
+    if not self.timed_level_active and not self.timed_level_timer then
+      self.timed_level_active = false
+      self.timed_level_timer = 0
+      self.timed_level_duration = 120 -- 2 minutes in seconds
+    end
     self._initialized = true
   end
 
   for i, item in ipairs(self.world.items) do
     if item.update then
       item: update(dt, self.world)
+    end
+  end
+
+  -- Handle timed level countdown
+  if self.timed_level_active then
+    self.timed_level_timer = self.timed_level_timer - dt
+    if self.timed_level_timer <= 0 then
+      -- Timer expired, return to hub
+      self.timed_level_active = false
+      self.timed_level_timer = 0
+      GUI:setTimedLevel(false, 0)
+      GameState.setCurrent('Play', 0)
+      return
     end
   end
 
@@ -60,6 +79,9 @@ function mt:update(dt)
     end
     duck.dimension_toggled = false
   end
+  
+  -- Update GUI with timed level info
+  GUI:setTimedLevel(self.timed_level_active, self.timed_level_timer)
 end
 
 function mt:draw()
@@ -70,11 +92,29 @@ end
 
 function mt:trigger(event, actor, data)
   if event == 'door:open' then
-    GameState.doors_passed = (GameState.doors_passed or 0) + 1
-    if self.level_num < MAX_LEVEL then
-      GameState.setCurrent('Play', self.level_num + 1)
+    data = data or {}
+    if data.timed then
+      -- Start a timed level - set state on THIS PlayState instance
+      self.timed_level_active = true
+      self.timed_level_timer = self.timed_level_duration
+      GameState.setCurrent('Play', data.target_level or 1)
     else
-      GameState.setCurrent('Win')
+      -- Normal door progression
+      -- If we're in a timed level, deactivate it
+      if not self.timed_level_active then
+        self.timed_level_timer = 0
+      end
+      
+      GameState.doors_passed = (GameState.doors_passed or 0) + 1
+      if self.level_num < MAX_LEVEL then
+        GameState.setCurrent('Play', self.level_num + 1)
+      else
+        -- Completed all levels, return to hub
+        self.timed_level_active = false
+        self.timed_level_timer = 0
+        GUI:setTimedLevel(false, 0)
+        GameState.setCurrent('Play', 0)
+      end
     end
   elseif event == 'duck:kill' then
     local duck = data
@@ -92,11 +132,26 @@ function mt:trigger(event, actor, data)
 end
 
 return {
-  new = function(level_num)
+  new = function(level_num, parent_state)
+    local Portal = require('Portal')
+    Portal.clearPortalManager()
+    
     local state = setmetatable({ name = 'Play_State', score = 0 }, mt)
     state.world = World.new()
     state.level = Level.new('map_' .. level_num, state)
     state.level_num = level_num
+    
+    -- Inherit timed level state from parent if available
+    if parent_state then
+      state.timed_level_active = parent_state.timed_level_active or false
+      state.timed_level_timer = parent_state.timed_level_timer or 0
+      state.timed_level_duration = parent_state.timed_level_duration or 120
+    else
+      state.timed_level_active = false
+      state.timed_level_timer = 0
+      state.timed_level_duration = 120
+    end
+    
     return state
   end
 }

@@ -1,182 +1,223 @@
--- Network module for UDP communication with server
--- Integrates with the game's GameState and World systems
-
 local socket = require "socket"
-local Animation = require('Animation')
-local assets_duck = require('assets_duck')
 
-local Network = {}
-Network.enabled = false
-Network.entity = nil
-Network.udp = nil
-Network.address = "localhost"
-Network.port = 12345
-Network.updaterate = 0.1
-Network.accumulator = 0
-Network.world = {} -- remote entities state
-Network.encryption_key = "default_key"
-Network.remote_ducks = {} -- track remote duck animations
+local Network = {
+  socket = nil,
+  host = nil,
+  port = nil,
+  encryption_key = nil,
+  client_id = nil,
+  connected = false,
+  verified = false,
+  remote_players = {},  -- id -> {x, y}
+  last_ping = 0,
+  ping_interval = 5,  -- Send ping every 5 seconds
+  last_error = nil,
+}
 
--- Simple XOR encryption function
-local function simpleEncrypt(text, key)
-  local encrypted = ""
-  key = key or "default_key"
-  for i = 1, #text do
-    local char = text:sub(i, i)
-    local keyChar = key:sub((i - 1) % #key + 1, (i - 1) % #key + 1)
-    encrypted = encrypted .. string.char(bit.bxor(string.byte(char), string.byte(keyChar)))
-  end
-  return encrypted
-end
-
--- Convert encrypted binary to hex string for display
-local function toHex(str)
-  local hex = ""
-  for i = 1, #str do
-    hex = hex .. string.format("%02x", string.byte(str:sub(i, i)))
-  end
-  return hex
-end
-
--- Initialize network connection
 function Network:init(address, port, encryption_key)
-  self.address = address or "localhost"
-  self.port = port or 12345
-  self.encryption_key = encryption_key or "default_key"
+  print(string.rep("=", 80))
+  print("[Network] Initializing connection parameters:")
+  print(string.format("  Address: '%s' (type: %s, length: %d)", 
+    tostring(address), type(address), address and #address or 0))
+  print(string.format("  Port: '%s' (type: %s)", 
+    tostring(port), type(port)))
+  print(string.format("  Encryption Key: '%s' (type: %s)", 
+    tostring(encryption_key), type(encryption_key)))
   
-  self.udp = socket.udp()
-  self.udp:settimeout(0)
-  self.udp:setpeername(self.address, self.port)
-  
-  -- Generate unique entity ID
-  math.randomseed(os.time())
-  self.entity = tostring(math.random(99999))
-  
-  self.enabled = true
-  self.accumulator = 0
-  
-  -- Encrypt entity ID for initial message
-  local encrypted_entity = simpleEncrypt(self.entity, self.encryption_key)
-  local encrypted_hex = toHex(encrypted_entity)
-  
-  -- Send initial position (will be filled in by game)
-  local dg = string.format("%s %s %d %d", encrypted_hex, 'at', 320, 240)
-  self.udp:send(dg)
-  
-  print("Network initialized.")
-  print("  Server: " .. self.address .. ":" .. self.port)
-  print("  Entity ID: " .. self.entity .. " (encrypted: " .. encrypted_hex .. ")")
-  print("  Encryption key: " .. self.encryption_key)
-end
-
--- Send duck position update
-function Network:sendDuckPosition(x, y)
-  if not self.enabled or not self.udp then return end
-  
-  self.accumulator = self.accumulator + (self.lastDt or 0.016)
-  
-  if self.accumulator > self.updaterate then
-    local encrypted_entity = simpleEncrypt(self.entity, self.encryption_key)
-    local encrypted_hex = toHex(encrypted_entity)
-    
-    local dg = string.format("%s %s %f %f", encrypted_hex, 'at', x, y)
-    self.udp:send(dg)
-    
-    -- Request world state update
-    local dg_update = string.format("%s %s $", encrypted_hex, 'update')
-    self.udp:send(dg_update)
-    
-    self.accumulator = self.accumulator - self.updaterate
+  -- Validate and convert port
+  if type(port) == "string" then
+    port = tonumber(port)
+    print(string.format("  Port converted to number: %d", port or 0))
   end
+  
+  if not port or port < 1 or port > 65535 then
+    print(string.format("[Network] ERROR: Invalid port number: %s", port))
+    self.last_error = "Invalid port number"
+    return false
+  end
+  
+  if not address or address == "" then
+    print("[Network] ERROR: Address is empty")
+    self.last_error = "Address is empty"
+    return false
+  end
+  
+  self.host = tostring(address):match("^%s*(.-)%s*$")  -- Trim whitespace
+  self.port = port
+  self.encryption_key = tostring(encryption_key)
+  self.remote_players = {}
+  self.last_ping = socket.gettime()
+  
+  print(string.format("  Trimmed Address: '%s'", self.host))
+  print(string.format("  Final Port: %d", self.port))
+  print(string.rep("=", 80))
+  
+  return self:connect()
 end
 
--- Receive and process network messages
-function Network:update(dt)
-  if not self.enabled or not self.udp then return end
+-- Network.lua - updated connect function
+
+function Network:connect()
+  if self.socket then
+    self:disconnect()
+  end
   
-  self.lastDt = dt
+  print(string.format("[Network] Attempting to connect to %s:%d...", self.host, self.port))
   
-  -- Update animations for all remote ducks
-  for ent_id, duck_data in pairs(self.remote_ducks) do
-    if duck_data.anim then
-      duck_data.anim:update(dt)
+  self.socket = socket.tcp()
+  self.socket:settimeout(3)  -- 3 second timeout for connection
+  
+  -- Try connection multiple times
+  local max_attempts = 3
+  local success = nil
+  local err = nil
+  
+  for attempt = 1, max_attempts do
+    print(string.format("[Network] Connection attempt %d/%d...", attempt, max_attempts))
+    success, err = self.socket:connect(self.host, self.port)
+    
+    if success then
+      break
+    end
+    
+    if attempt < max_attempts then
+      socket.sleep(0.5)  -- Wait before retrying
     end
   end
   
-  repeat
-    local data, msg = self.udp:receive()
+  print(string.format("[Network] Connect result - Success: %s, Error: %s", 
+    tostring(success), tostring(err)))
+  
+  if success then
+    self.socket:settimeout(0)  -- Switch to non-blocking
+    self.connected = true
+    print(string.format("[Network] Connected successfully to %s:%d", self.host, self.port))
     
-    if data then
-      local ent, cmd, parms = data:match("^(%S*) (%S*) (.*)")
-      
-      if cmd == 'at' then
-        -- Parse position update
-        local x, y = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*)$")
-        if x and y then
-          x, y = tonumber(x), tonumber(y)
-          self.world[ent] = { x = x, y = y }
-          
-          -- Initialize animation for this remote duck if not exists
-          if not self.remote_ducks[ent] then
-            self.remote_ducks[ent] = {
-              anim = Animation.new(1, 8, 1), -- idle animation
-              direction = 1 -- 1 for right, -1 for left
-            }
-          end
-        end
-      elseif cmd == 'move' then
-        -- Handle move commands if needed
-        local x, y = parms:match("^(%-?[%d.e]*) (%-?[%d.e]*)$")
-        if x and y then
-          x, y = tonumber(x), tonumber(y)
-          if self.world[ent] then
-            self.world[ent].x = self.world[ent].x + x
-            self.world[ent].y = self.world[ent].y + y
-          else
-            self.world[ent] = { x = x, y = y }
-          end
-        end
-      else
-        print("Unrecognised network command:", cmd)
+    -- Send authentication immediately
+    self:send("AUTH:" .. self.encryption_key)
+    
+    return true
+  else
+    self.socket:settimeout(0)
+    self.last_error = err
+    print(string.format("[Network] Connection failed: %s", err))
+    
+    -- Provide helpful suggestions
+    if err:find("host or service not provided") then
+      print("[Network] HINT: Address might be empty or invalid")
+      print("[Network] HINT: Try using 'localhost', '127.0.0.1', or an IP address")
+    elseif err:find("Connection refused") then
+      print("[Network] HINT: Server is not running or not listening on this port")
+      print("[Network] HINT: Make sure main_server.lua is running")
+      print("[Network] HINT: Try 'lua main_server.lua' in a terminal")
+    elseif err:find("Network is unreachable") then
+      print("[Network] HINT: Cannot reach the network/IP address")
+      print("[Network] HINT: Check your network connection and firewall")
+    elseif err:find("No such host") then
+      print("[Network] HINT: Hostname/IP address is invalid or cannot be resolved")
+    end
+    
+    self.connected = false
+    return false
+  end
+end
+
+function Network:send(message)
+  if not self.socket or not self.connected then
+    print(string.format("[Network] Cannot send - Connected: %s, Socket: %s", 
+      tostring(self.connected), tostring(self.socket ~= nil)))
+    return false
+  end
+  
+  local success, err = self.socket:send(message .. "\n")
+  
+  if not success then
+    print(string.format("[Network] Send error: %s", err))
+    if err ~= "timeout" then
+      self:disconnect()
+    end
+    return false
+  end
+  
+  return true
+end
+
+function Network:sendPlayerPosition(x, y)
+  if not self.verified then return false end
+  
+  local msg = string.format("POS:%.1f,%.1f", x, y)
+  return self:send(msg)
+end
+
+function Network:update()
+  if not self.socket or not self.connected then
+    return
+  end
+  
+  -- Receive messages
+  local data, err = self.socket:receive("*l")
+  
+  if data then
+    self:handleMessage(data)
+  elseif err == "closed" then
+    print("[Network] Connection closed by server")
+    self:disconnect()
+  elseif err ~= "timeout" and err ~= nil then
+    print(string.format("[Network] Receive error: %s", err))
+    self:disconnect()
+  end
+  
+  -- Send periodic ping
+  local now = socket.gettime()
+  if self.verified and now - self.last_ping >= self.ping_interval then
+    self:send("PING")
+    self.last_ping = now
+  end
+end
+
+function Network:handleMessage(message)
+  if message == "VERIFIED" then
+    self.verified = true
+    print("[Network] Successfully authenticated with server")
+  elseif message == "PONG" then
+    -- Ping response received
+  else
+    local command, data = message:match("^([A-Z]+):(.*)$")
+    
+    if command == "PLAYER" then
+      local player_id, x, y = data:match("^([^:]+):([^:]+):(.+)$")
+      if player_id and x and y then
+        self.remote_players[tonumber(player_id)] = {
+          x = tonumber(x),
+          y = tonumber(y)
+        }
       end
-    elseif msg ~= 'timeout' then
-      print("Network error: " .. tostring(msg))
-    end
-  until not data
-end
-
--- Draw remote entities as semi-transparent animated ducks
-function Network:draw()
-  if not self.enabled then return end
-  
-  love.graphics.setColor(0.5, 0.5, 0.5, 0.5) -- Semi-transparent white
-  
-  for ent, pos in pairs(self.world) do
-    if ent ~= self.entity then
-      local duck_data = self.remote_ducks[ent]
-      if duck_data and duck_data.anim then
-        -- Draw the duck sprite with the current animation frame
-        -- Using the same sprite and approach as the local duck
-        local frame = duck_data.anim:getFrame()
-        if duck_data.direction == -1 then
-          assets_duck.qdraw(frame, pos.x + 32 - 6, pos.y, 0, -1, 1)
-        else
-          assets_duck.qdraw(frame, pos.x - 6, pos.y)
-        end
-      end
     end
   end
-  
-  love.graphics.setColor(1, 1, 1, 1) -- Reset to opaque
 end
 
--- Cleanup
-function Network:shutdown()
-  if self.udp then
-    self.udp:close()
+function Network:getRemotePlayers()
+  return self.remote_players
+end
+
+function Network:disconnect()
+  if self.socket then
+    self.socket:close()
+    self.socket = nil
   end
-  self.enabled = false
-  self.remote_ducks = {}
+  
+  self.connected = false
+  self.verified = false
+  self.remote_players = {}
+  print("[Network] Disconnected from server")
+end
+
+function Network:isConnected()
+  return self.connected and self.verified
+end
+
+function Network:getLastError()
+  return self.last_error
 end
 
 return Network
