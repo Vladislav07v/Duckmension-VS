@@ -1,11 +1,14 @@
+-- main_server.lua
+-- Multiplayer server for Duckmension Versus
+
 local socket = require "socket"
 
 -- Configuration
 local PORT = 12345
-local HOST = "0.0.0.0"  -- Changed from "*" to explicit 0.0.0.0
+local HOST = "0.0.0.0"
 local ENCRYPTION_KEY = "default-key"
 local UPDATE_RATE = 1 / 30  -- 30 FPS
-local PLAYER_TIMEOUT = 5    -- seconds before disconnecting inactive players
+local PLAYER_TIMEOUT = 30   -- seconds before disconnecting inactive players (increased from 5)
 
 -- Server state
 local server = {
@@ -13,7 +16,7 @@ local server = {
   port = PORT,
   host = HOST,
   encryption_key = ENCRYPTION_KEY,
-  clients = {},  -- Connected clients
+  clients = {},
   next_client_id = 1,
   last_update = socket.gettime(),
   running = true
@@ -24,7 +27,6 @@ local function getLocalIP()
   local sock = socket.udp()
   sock:setoption("reuseaddr", true)
   
-  -- Try to connect to an external address to determine local IP
   local success, err = sock:setpeername("8.8.8.8", 80)
   if success then
     local ip = sock:getsockname()
@@ -32,7 +34,6 @@ local function getLocalIP()
     return ip or "127.0.0.1"
   else
     sock:close()
-    -- Fallback: try localhost
     return "127.0.0.1"
   end
 end
@@ -62,7 +63,6 @@ local function initServer()
   print(string.format("[Server] Configuration: PORT=%d, HOST=%s, KEY=%s", 
     server.port, server.host, server.encryption_key))
   
-  -- Check if port is in use
   print("[Server] Checking if port is available...")
   isPortInUse(server.port)
   
@@ -88,7 +88,6 @@ local function initServer()
     print(string.format("[Server] Bind error: %s", bind_err))
     print("[Server] Trying alternative binding methods...")
     
-    -- Try binding to 127.0.0.1 instead
     print("[Server] Attempting to bind to 127.0.0.1:12345...")
     bind_success, bind_err = server.socket:bind("127.0.0.1", server.port)
     if not bind_success then
@@ -107,7 +106,7 @@ local function initServer()
     os.exit(1)
   end
   
-  server.socket:settimeout(0)  -- Non-blocking
+  server.socket:settimeout(0)
   
   print("\n" .. string.rep("=", 80))
   print("  DUCKMENSION VERSUS - MULTIPLAYER SERVER")
@@ -154,7 +153,6 @@ local function verifyClient(client)
     client.verified = true
     print(string.format("[%s] ✓ Client #%d VERIFIED", 
       os.date("%H:%M:%S"), client.id))
-    -- Send verification response
     local success, err = client.socket:send("VERIFIED\n")
     if not success then
       print(string.format("[%s] Failed to send VERIFIED: %s", os.date("%H:%M:%S"), err))
@@ -168,12 +166,11 @@ local function verifyClient(client)
     return false
   end
   
-  return nil  -- Still waiting for key
+  return nil
 end
 
 -- Parse and handle client messages
 local function handleClientMessage(client, message)
-  -- Message format: "AUTH:key" or "POS:x,y" or "PING"
   local command, data = message:match("^([A-Z]+):(.*)$")
   
   if not command then
@@ -182,7 +179,7 @@ local function handleClientMessage(client, message)
   
   if command == "AUTH" then
     client.encryption_key = data
-    print(string.format("[%s] Client #%d AUTH attempt: '%s'", 
+    print(string.format("[%s] Client #%d AUTH: '%s'", 
       os.date("%H:%M:%S"), client.id, data))
     verifyClient(client)
   elseif command == "POS" then
@@ -215,7 +212,7 @@ local function receiveFromClient(client)
   if data then
     handleClientMessage(client, data)
   elseif err == "closed" then
-    return false  -- Connection closed
+    return false
   elseif err ~= "timeout" and err ~= nil then
     if err ~= "Connection reset by peer" then
       print(string.format("[%s] Client #%d error: %s", 
@@ -255,7 +252,6 @@ end
 local function updateServer()
   acceptConnections()
   
-  -- Handle client messages and check timeouts
   local clients_to_remove = {}
   for id, client in pairs(server.clients) do
     local success = receiveFromClient(client)
@@ -265,7 +261,6 @@ local function updateServer()
         os.date("%H:%M:%S"), client.id))
       table.insert(clients_to_remove, id)
     else
-      -- Check for timeout
       local time_since_update = socket.gettime() - client.last_update
       if client.verified and time_since_update > PLAYER_TIMEOUT then
         print(string.format("[%s] Client #%d TIMEOUT (%.1fs inactive)", 
@@ -275,7 +270,6 @@ local function updateServer()
     end
   end
   
-  -- Remove disconnected clients
   for _, id in ipairs(clients_to_remove) do
     local client = server.clients[id]
     if client and client.socket then
@@ -284,11 +278,9 @@ local function updateServer()
     server.clients[id] = nil
   end
   
-  -- Broadcast player data
   broadcastPlayerData()
 end
 
--- Main server loop
 local function run()
   initServer()
   
@@ -301,10 +293,9 @@ local function run()
       server.last_update = now
     end
     
-    socket.sleep(0.001)  -- Small sleep to prevent CPU spinning
+    socket.sleep(0.001)
   end
   
-  -- Cleanup
   if server.socket then
     server.socket:close()
   end
@@ -319,5 +310,4 @@ local function run()
   print(string.rep("=", 80))
 end
 
--- Run server
 run()

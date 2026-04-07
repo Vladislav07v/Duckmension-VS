@@ -205,7 +205,7 @@ return {
       name = 'Settings_State',
       server_address = "localhost",
       server_port = "12345",
-      encryption_key = "default_key",
+      encryption_key = "default-key",
       active_field = nil,
       network_instance = nil,
     }, mt)

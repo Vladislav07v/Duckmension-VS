@@ -4,12 +4,17 @@ local Animation = require('Animation')
 
 local mt = {}
 mt.__index = mt
+local Portal = {}
 
 -- Static table to track all portals in the world and manage teleportation
 local portalManager = {
   portals = {},
   nextPortalId = 1,
 }
+
+local function clearPortalManager()
+  portalManager.portals = {}
+end
 
 function mt:update(dt)
   -- Advance animation timer
@@ -122,6 +127,7 @@ return {
   -- new signature accepts opts table with Direction and PairId
   -- opts.Direction: 1=up, 2=right, 3=down, 4=left
   -- opts.PairId: 1 or 2 (portals with same PairId are linked)
+  clearPortalManager = clearPortalManager,
   new = function(x, y, game_state, opts)
     opts = opts or {}
     local direction = opts.Direction or 2 -- default right

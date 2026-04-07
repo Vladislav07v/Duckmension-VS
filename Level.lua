@@ -31,6 +31,7 @@ local TILES_TYPES = {
   [2] = require('ToggleFloor'),
   [3] = require('ReverseToggleFloor'),
   [4] = require('Door'),
+  [41] = require('Door', { DoorType = 'timed', TargetLevel = 1 }),
   --[5] = require('Spikes'),
   [6] = require('Trampoline'),
   [7] = require('Button'),
@@ -52,6 +53,7 @@ local TILES_TYPES = {
   [22] = require('Portal', { Direction = 2, PairId = 2 }),
   [23] = require('Portal', { Direction = 3, PairId = 2 }),
   [24] = require('Portal', { Direction = 4, PairId = 2 }),
+  [30] = require('FallingFloor')
   --[7] = require('Trampoline', is_moving == true),
   --[21] = require('Enemy'),
 }

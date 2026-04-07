@@ -21,7 +21,7 @@ end
 function mt:update(dt)
   self.player:update()
   if self.player:pressed("start") then
-    GameState.setCurrent('Play', 1)
+    GameState.setCurrent('Play', 0)
   end
   if self.player:pressed("change") then
     GameState.setCurrent('Settings')

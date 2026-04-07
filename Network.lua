@@ -1,3 +1,6 @@
+-- Network.lua
+-- Client-side multiplayer networking
+
 local socket = require "socket"
 
 local Network = {
@@ -12,6 +15,8 @@ local Network = {
   last_ping = 0,
   ping_interval = 5,  -- Send ping every 5 seconds
   last_error = nil,
+  last_pos_update = 0,
+  pos_update_interval = 0.1,  -- Send position every 0.1 seconds (10 times per second)
 }
 
 function Network:init(address, port, encryption_key)
@@ -47,6 +52,7 @@ function Network:init(address, port, encryption_key)
   self.encryption_key = tostring(encryption_key)
   self.remote_players = {}
   self.last_ping = socket.gettime()
+  self.last_pos_update = socket.gettime()
   
   print(string.format("  Trimmed Address: '%s'", self.host))
   print(string.format("  Final Port: %d", self.port))
@@ -54,8 +60,6 @@ function Network:init(address, port, encryption_key)
   
   return self:connect()
 end
-
--- Network.lua - updated connect function
 
 function Network:connect()
   if self.socket then
@@ -143,10 +147,24 @@ function Network:send(message)
 end
 
 function Network:sendPlayerPosition(x, y)
-  if not self.verified then return false end
+  if not self.verified then 
+    return false 
+  end
+  
+  local now = socket.gettime()
+  -- Only send if enough time has passed since last position update
+  if now - self.last_pos_update < self.pos_update_interval then
+    return true  -- Not an error, just rate limiting
+  end
   
   local msg = string.format("POS:%.1f,%.1f", x, y)
-  return self:send(msg)
+  local success = self:send(msg)
+  
+  if success then
+    self.last_pos_update = now
+  end
+  
+  return success
 end
 
 function Network:update()

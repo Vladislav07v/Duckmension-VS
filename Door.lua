@@ -9,7 +9,13 @@ mt.__index = mt
 function mt:update(dt)
   self.touches_duck = GameState.getCurrent().world:check(self, 'is_duck')
     if self.touches_duck then
-      GameState.getCurrent():trigger('door:open')
+      if self.door_type == 'timed' then
+        -- Timed door: start the timer and trigger the level
+        GameState.getCurrent():trigger('door:open', self, { timed = true, target_level = self.target_level })
+      else
+        -- Normal door: go to next level
+        GameState.getCurrent():trigger('door:open', self, { timed = false })
+      end
       local state = GameState.getCurrent()
   end
 
@@ -34,7 +40,8 @@ function mt:setAnim(name)
 end
 
 return {
-  new = function(x, y, game_state)
+  new = function(x, y, game_state, opts)
+    opts = opts or {}
     local h = setmetatable({
       is_door = true,
       is_actable = true,
@@ -42,6 +49,8 @@ return {
       y = y,
       w = const.tilesize,
       h = const.tilesize,
+      door_type = opts.DoorType or 'normal', -- 'normal' or 'timed'
+      target_level = opts.TargetLevel or 1, -- used for timed doors
       anims = {
         idle = Animation.new(9, 8, 1),
         }
