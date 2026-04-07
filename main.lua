@@ -3,7 +3,7 @@ local GameState  = require('GameState')
 local TitleState = require('TitleState')
 local GUI = require('gui')
 local Music = require('Music')
-local Network = require('Network')
+GameState.network = require('Network')
 
 -- Fixed timestep params
 local PHYSICS_STEP = 1 / 30         -- physics tick (seconds)
@@ -14,9 +14,6 @@ function love.load()
   GameState.setCurrent('Title')
   love.graphics.setDefaultFilter('nearest', 'nearest')
   
-  -- Uncomment the line below to enable networking
-  Network:init("localhost", 12345)
-  love.keyboard.setTextInput(false)
 end
 
 function love.update(dt)
@@ -41,19 +38,7 @@ function love.update(dt)
 
   -- run once-per-frame non-physics updates (music, UI timers if desired)
   Music:update()
-  
-  -- Network update
-  Network:update(dt)
-  
-  -- Send duck position to network if playing
-  local current_state = GameState.getCurrent()
-  if current_state and current_state.name == 'Play_State' then
-    local duck = GameState.getDuckObject()
-    if duck then
-      Network:sendDuckPosition(duck.x, duck.y)
-    end
-  end
-  
+    
   function love.keypressed(key)
     local current_state = GameState.getCurrent()
     if current_state and current_state.keypressed then
@@ -124,10 +109,4 @@ function love.draw(screen)
       currentState:draw(screen)
     end
   end
-  -- Draw network entities
-  Network:draw()
-end
-
-function love.quit()
-  Network:shutdown()
 end

@@ -1,5 +1,6 @@
 local GameState = {}
 GameState.doors_passed = 0
+GameState.network = nil  -- Add network reference
 
 function GameState.setCurrent(state_name, args)
   local parent = GameState.current
@@ -25,6 +26,10 @@ function GameState.getDuckObject()
       return item
     end
   end
+end
+
+function GameState.setNetwork(network)
+  GameState.network = network
 end
 
 return GameState
