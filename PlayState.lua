@@ -56,6 +56,19 @@ function mt:update(dt)
     end
   end
 
+  -- Handle timed level countdown
+  if self.timed_level_active then
+    self.timed_level_timer = self.timed_level_timer - dt
+    if self.timed_level_timer <= 0 then
+      -- Timer expired, return to hub
+      self.timed_level_active = false
+      self.timed_level_timer = 0
+      GUI:setTimedLevel(false, 0)
+      GameState.setCurrent('Play', 0)
+      return
+    end
+  end
+
   if self.close_t then
     self.close_t = self.close_t - dt
     if self.close_t < 0 then
