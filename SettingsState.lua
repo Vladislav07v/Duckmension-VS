@@ -7,9 +7,9 @@ local mt = {}
 mt.__index = mt
 
 local fields = {
-  address = { x=20, y=40, w=200, h=30 },
-  port =    { x=20, y=90, w=120, h=30 },
-  key =     { x=20, y=140, w=200, h=30 },
+  address = { x=20, y=35, w=200, h=30 },
+  port =    { x=20, y=75, w=120, h=30 },
+  key =     { x=20, y=115, w=200, h=30 },
 }
 
 function mt:update(dt)
@@ -65,7 +65,7 @@ function mt:draw(screen)
 
   -- Connection Status and Error Message
   love.graphics.setFont(self.small_font)
-  local status_y = fields.key.y + 50
+  local status_y = fields.key.y + 35
   
   if self.network_instance and self.network_instance:isConnected() then
     love.graphics.setColor(0.2, 1, 0.2, 1)
@@ -86,9 +86,8 @@ function mt:draw(screen)
 
   -- Instructions
   love.graphics.setColor(0.7, 0.7, 0.7, 1)
-  love.graphics.print("Click a field to edit", 20, status_y + 60)
-  love.graphics.print("Press (jump) to connect", 20, status_y + 85)
-  love.graphics.print("Press (back) to return to title", 20, status_y + 110)
+  love.graphics.print("Click a field to edit", 20, status_y + 30)
+  love.graphics.print("Press (jump) to connect or (change) to go back", 20, status_y + 50)
 end
 
 function mt:mousepressed(x, y, button)
@@ -219,8 +218,8 @@ return {
       joystick = love.joystick.getJoysticks()[1],
       deadzone = .33,
     }
-    state.title_font = love.graphics.newFont("assets/bit.ttf", 20)
-    state.small_font = love.graphics.newFont("assets/bit.ttf", 14)
+    state.title_font = love.graphics.newFont("assets/upheavtt.ttf", 20)
+    state.small_font = love.graphics.newFont("assets/upheavtt.ttf", 15)
     return state
   end
 }
