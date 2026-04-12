@@ -1,8 +1,0 @@
-require('nest-master/nest').init({console = "3ds", emulateJoystick="true", scale=2})
-
--- Sleep logic, locking the framerate at 30
-if dt < 1/30 then
-      love.timer.sleep(1/30 - dt)
-  end
-
-ftp://192.168.1.7:5000/3ds/
