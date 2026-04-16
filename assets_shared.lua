@@ -7,7 +7,9 @@ local cache = {}
 -- Load an image once and cache it under `key`.
 function Assets.load(path, key)
   if not cache[key] then
-    cache[key] = love.graphics.newImage(path)
+    local img = love.graphics.newImage(path)
+    img:setFilter('nearest', 'nearest')
+    cache[key] = img
   end
   return cache[key]
 end

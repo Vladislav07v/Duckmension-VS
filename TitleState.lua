@@ -14,7 +14,7 @@ function mt:loadAssets()
     self.bottom_image = Assets.load('assets/bg_dark.png', 'bg_dark')
   end
   if not self.title_font then
-    self.title_font = love.graphics.newFont("assets/bit.ttf", 30)
+    self.title_font = love.graphics.newFont("assets/upheavtt.ttf", 30)
   end
 end
 

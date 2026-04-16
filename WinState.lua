@@ -9,12 +9,18 @@ function mt:update(dt)
       
   local jumpPressed = self.player:pressed('jump')
   if jumpPressed then
-    GameState.setCurrent('Play', 1)
+    if GameState.network then
+      GameState.network.lobby_state = nil
+      GameState.network.in_lobby = false
+      GameState.network:send("LEAVE_LOBBY")
+    end
+    GameState.doors_passed = 0
+    GameState.setCurrent('Play', 0) -- Hub (map_0.lua)
   end
 end
 
 function mt:draw()
-  love.graphics.print('you won\npress (jump) to\nrestart', 80, 80)
+  love.graphics.print('you won\npress (jump) to\nreturn to hub', 80, 80)
 end
 
 function mt:trigger()
@@ -27,7 +33,7 @@ return {
       controls = {
         jump = {'key:z','button:b','mouse:1'},
       },
-      joystick = love. joystick.getJoysticks()[1],
+      joystick = love.joystick.getJoysticks()[1],
       deadzone = .33,
     }
     return state

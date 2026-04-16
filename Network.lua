@@ -12,6 +12,11 @@ local Network = {
   connected = false,
   verified = false,
   remote_players = {},  -- id -> {x, y}
+  lobbies = {},
+  in_lobby = false,
+  lobby_id = nil,
+  lobby_state = nil,
+  winner_id = nil,
   last_ping = 0,
   ping_interval = 5,  -- Send ping every 5 seconds
   last_error = nil,
@@ -51,6 +56,7 @@ function Network:init(address, port, encryption_key)
   self.port = port
   self.encryption_key = tostring(encryption_key)
   self.remote_players = {}
+  self.lobbies = {}
   self.last_ping = socket.gettime()
   self.last_pos_update = socket.gettime()
   
@@ -194,13 +200,21 @@ function Network:update()
 end
 
 function Network:handleMessage(message)
-  if message == "VERIFIED" then
+  if message:match("^VERIFIED") then
     self.verified = true
-    print("[Network] Successfully authenticated with server")
+    local id = message:match("^VERIFIED:(%d+)")
+    if id then
+      self.client_id = tonumber(id)
+    end
+    print("[Network] Successfully authenticated with server. Assigned ID: " .. tostring(self.client_id))
   elseif message == "PONG" then
     -- Ping response received
   else
-    local command, data = message:match("^([A-Z]+):(.*)$")
+    local command, data = message:match("^([A-Z_]+):(.*)$")
+    
+    if not command then
+      command = message:match("^([A-Z_]+)$")
+    end
     
     if command == "PLAYER" then
       local player_id, x, y = data:match("^([^:]+):([^:]+):(.+)$")
@@ -209,6 +223,36 @@ function Network:handleMessage(message)
           x = tonumber(x),
           y = tonumber(y)
         }
+      end
+    elseif command == "LOBBY_CREATED" or command == "LOBBY_JOINED" then
+      self.in_lobby = true
+      self.lobby_id = tonumber(data)
+      self.lobby_state = "waiting"
+      self.last_error = nil
+      print("[Network] Joined lobby #" .. tostring(self.lobby_id))
+    elseif command == "LOBBY_START" then
+      self.lobby_state = "playing"
+      print("[Network] Lobby started playing!")
+    elseif command == "LOBBY_ERROR" then
+      self.last_error = data
+      self.in_lobby = false
+      print("[Network] Lobby Error: " .. tostring(data))
+    elseif command == "GAME_OVER" then
+      self.lobby_state = "game_over"
+      self.winner_id = tonumber(data)
+      self.in_lobby = false
+      print("[Network] Game Over! Winner ID: " .. tostring(self.winner_id))
+    elseif command == "LOBBIES" then
+      self.lobbies = {}
+      for lobby_str in data:gmatch("([^;]+);") do
+        local id, mode, players, started = lobby_str:match("^(%d+):([%w_]+):(%d+):(%d+)$")
+        if id then
+          self.lobbies[tonumber(id)] = {
+            mode = mode, 
+            players = tonumber(players), 
+            started = (started == "1")
+          }
+        end
       end
     end
   end
