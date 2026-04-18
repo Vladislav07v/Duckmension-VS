@@ -1,12 +1,15 @@
-##<p align="center">
+<p align="center">
 
 <img src="extra/logo3d.png" />
 
 </p>
 
 
+<p align="center">
 
 A multiplatform multiplayer platformer game starring a duck
+
+</p>
 
 
 
