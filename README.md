@@ -1,6 +1,6 @@
 <p align="center">
 
-<img src="https://github.com/Vladislav07v/Duckmension-VS/tree/main/extra/logo3d.png" />
+<img src="extra/logo3d.png" />
 
 </p>
 
