@@ -15,18 +15,28 @@ function GUI:setTimedLevel(active, timer)
 end
 
 function GUI:draw()
+  self:displayCookieText()
   self:displayCoinText()
-  self:displayDuckCoords()
   self:displayTimer()
+  self:displayDuckCoords()
 end
 
-function GUI:displayCoinText()
+function GUI:displayCookieText()
   love.graphics.setFont(self.font)
   local doors = GameState.doors_passed or 0
   if love._console =="3DS" then
     love.graphics.print(doors, 39, 1)
   else
-    love.graphics.print(doors, 764, 39)
+    love.graphics.print(doors, 410, 52)
+    end
+end
+function GUI:displayCoinText()
+  love.graphics.setFont(self.font)
+  local coins = GameState.coins or 0
+  if love._console =="3DS" then
+    love.graphics.print(coins, 97, 1)
+  else
+    love.graphics.print(coins, 410, 110)
     end
 end 
 

@@ -12,6 +12,18 @@ local fields = {
   key =     { x=20, y=115, w=200, h=30 },
 }
 
+function mt:loadAssets()
+  -- preload and reuse images via shared cache
+  if not self.title_image then
+    self.title_image = Assets.load('assets/title.png', 'title')
+  end
+  if not self.title_font then
+    self.title_font = love.graphics.newFont("assets/upheavtt.ttf", 20)
+  end
+  if not self.small_font then
+    self.small_font = love.graphics.newFont("assets/upheavtt.ttf", 15)
+  end
+end
 function mt:update(dt)
   self.player:update()
   
@@ -22,7 +34,7 @@ function mt:update(dt)
   
   if self.player:pressed("back") then
     love.keyboard.setTextInput(false)
-    GameState.setCurrent('Title')
+    GameState.setCurrent('Play',0)
     return
   end
   if self.player:pressed("jump") then
@@ -31,6 +43,7 @@ function mt:update(dt)
 end
 
 function mt:draw(screen)
+  self:loadAssets()
   love.graphics.setFont(self.title_font)
   love.graphics.setColor(1,1,1,1)
 
@@ -88,39 +101,46 @@ function mt:draw(screen)
   love.graphics.setColor(0.7, 0.7, 0.7, 1)
   love.graphics.print("Click a field to edit", 20, status_y + 30)
   love.graphics.print("Press (jump) to connect or (change) to go back", 20, status_y + 50)
+  
+  if love._console =="3DS" and screen ~= "bottom" then
+    love.graphics.draw(self.title_image,0,0)
+    else
+  end
+end
+
+function mt:activateField(fname)
+  self.active_field = fname
+  self.field_just_activated = true  -- next input replaces instead of appending
+  love.keyboard.setTextInput(true)
 end
 
 function mt:mousepressed(x, y, button)
   if button ~= 1 then return end
   
-  -- Check which field was clicked
   for fname, rect in pairs(fields) do
     if x >= rect.x*3 and x <= rect.x*3 + rect.w*3 and y >= rect.y*3 and y <= rect.y*3 + rect.h*3 then
-      self.active_field = fname
-      love.keyboard.setTextInput(true)
+      self:activateField(fname)
       return
     end
   end
   
-  -- Deselect if clicking outside fields
   self.active_field = nil
+  self.field_just_activated = false
   love.keyboard.setTextInput(false)
 end
 
 function mt:touchpressed(id, x, y, dx, dy, pressure)
   if pressure ~= 1 then return end
   
-  -- Check which field was pressed
   for fname, rect in pairs(fields) do
     if x >= rect.x and x <= rect.x + rect.w and y >= rect.y and y <= rect.y + rect.h then
-      self.active_field = fname
-      love.keyboard.setTextInput(true)
+      self:activateField(fname)
       return
     end
   end
   
-  -- Deselect if pressing outside fields
   self.active_field = nil
+  self.field_just_activated = false
   love.keyboard.setTextInput(false)
 end
 
@@ -128,22 +148,21 @@ function mt:keypressed(key)
   if not self.active_field then return end
   
   if key == "backspace" then
-    if self.active_field == "address" then
-      self.server_address = self.server_address:sub(1, -2)
-    elseif self.active_field == "port" then
-      self.server_port = self.server_port:sub(1, -2)
-    elseif self.active_field == "key" then
-      self.encryption_key = self.encryption_key:sub(1, -2)
-    end
-  elseif key:len() == 1 then
-    if self.active_field == "address" then
-      self.server_address = self.server_address .. key
-    elseif self.active_field == "port" then
-      if tonumber(key) then
-        self.server_port = self.server_port .. key
+    -- Just-focused: backspace clears the whole field (mirrors select-all behaviour)
+    if self.field_just_activated then
+      if     self.active_field == "address" then self.server_address = ""
+      elseif self.active_field == "port"    then self.server_port    = ""
+      elseif self.active_field == "key"     then self.encryption_key = ""
       end
-    elseif self.active_field == "key" then
-      self.encryption_key = self.encryption_key .. key
+      self.field_just_activated = false
+    else
+      if self.active_field == "address" then
+        self.server_address = self.server_address:sub(1, -2)
+      elseif self.active_field == "port" then
+        self.server_port = self.server_port:sub(1, -2)
+      elseif self.active_field == "key" then
+        self.encryption_key = self.encryption_key:sub(1, -2)
+      end
     end
   end
 end
@@ -151,10 +170,23 @@ end
 function mt:textinput(text)
   if not self.active_field then return end
   
+  -- First character after focusing replaces the whole field (select-all-on-focus)
+  if self.field_just_activated then
+    if self.active_field == "address" then
+      self.server_address = text
+    elseif self.active_field == "port" then
+      if tonumber(text) then self.server_port = text end
+    elseif self.active_field == "key" then
+      self.encryption_key = text
+    end
+    self.field_just_activated = false
+    return
+  end
+
+  -- Subsequent characters append normally
   if self.active_field == "address" then
     self.server_address = self.server_address .. text
   elseif self.active_field == "port" then
-    -- Only allow numeric input for port
     if tonumber(text) then
       self.server_port = self.server_port .. text
     end
@@ -202,7 +234,7 @@ return {
   new = function()
     local state = setmetatable({
       name = 'Settings_State',
-      server_address = "localhost",
+      server_address = "192.168.1.11",
       server_port = "12345",
       encryption_key = "default-key",
       active_field = nil,
@@ -218,8 +250,6 @@ return {
       joystick = love.joystick.getJoysticks()[1],
       deadzone = .33,
     }
-    state.title_font = love.graphics.newFont("assets/upheavtt.ttf", 20)
-    state.small_font = love.graphics.newFont("assets/upheavtt.ttf", 15)
     return state
   end
 }

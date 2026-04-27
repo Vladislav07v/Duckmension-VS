@@ -1,5 +1,6 @@
 local GameState = {}
 GameState.doors_passed = 0
+GameState.coins = 0
 GameState.network = nil  -- Add network reference
 
 function GameState.setCurrent(state_name, args)

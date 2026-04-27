@@ -61,6 +61,12 @@ function love.update(dt)
   end
 end
 
+function love.textinput(text)
+  if GameState.current and GameState.current.textinput then
+    GameState.current:textinput(text)
+  end
+end
+
 function love.draw(screen)
   if love._console =="3DS" then
     love.graphics.scale(1, 1)
