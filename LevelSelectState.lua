@@ -39,10 +39,8 @@ function mt:draw()
   -- Status
   if GameState.network then
     love.graphics.setColor(1, 0.5, 0.5, 1)
-    love.graphics.print("(Connected to server - level select disabled)", 20, 50)
-  else
-    love.graphics.setColor(0.5, 1, 0.5, 1)
-    love.graphics.print("(Not connected - free play mode)", 20, 50)
+    love.graphics.print("Disconnect from server first!", 20, 50)
+    
   end
   
   -- Display current selection
@@ -50,9 +48,9 @@ function mt:draw()
   love.graphics.print("Selected Level: " .. self.selected_level, 20, 100)
   
   -- Navigation help
-  love.graphics.setFont(self.small_font)
+  love.graphics.setFont(self.title_font)
   love.graphics.setColor(0.8, 0.8, 0.8, 1)
-  love.graphics.print("LEFT/RIGHT - Navigate | (jump) - Select | (back) - Exit", 20, 150)
+  love.graphics.print("LEFT/RIGHT - Navigate | (A) - Select | (B) - Exit", 20, 150)
 end
 
 function mt:trigger()
@@ -64,17 +62,15 @@ return {
     
     -- Load fonts
     if not state.title_font then
-      state.title_font = love.graphics.newFont("assets/upheavtt.ttf", 20)
+      state.title_font = love.graphics.newFont("assets/ari_dis.ttf", 11)
     end
-    if not state.small_font then
-      state.small_font = love.graphics.newFont("assets/upheavtt.ttf", 10)
-    end
+
     
     -- Initialize player controller
     state.player = baton.new {
       controls = {
-        jump = {'key:c','button:b','mouse:1'},
-        back = {'key:x','button:a'},
+        jump = {'key:return','button:a'},
+        back = {'key:escape','button:b'},
         left = {'key:left','button:dpleft','axis:leftx-'},
         right = {'key:right','button:dpright','axis:leftx+'},
       },
@@ -83,7 +79,6 @@ return {
     }
     
     state.selected_level = 1
-    
     return state
   end
 

@@ -5,6 +5,8 @@ local Animation = require('Animation')
 
 local mt = {}
 mt.__index = mt
+timed_gate = love.graphics.newImage('assets/Timed_Run_Gate.png')
+full_gate = love.graphics.newImage('assets/Full_Run_Gate.png')
 
 function mt:update(dt)
   self.touches_duck = GameState.getCurrent().world:check(self, 'is_duck')
@@ -12,6 +14,9 @@ function mt:update(dt)
       if self.door_type == 'timed' then
         -- Timed door: start the timer and trigger the level
         GameState.getCurrent():trigger('door:open', self, { timed = true, target_level = self.target_level })
+      elseif self.door_type == 'full' then
+        -- Full door: only trigger the level
+        GameState.getCurrent():trigger('door:open', self, { target_level = self.target_level })
       else
         -- Normal door: go to next level
         GameState.getCurrent():trigger('door:open', self, { timed = false })
@@ -26,9 +31,15 @@ function mt:update(dt)
 end
 
 function mt:draw()
+  if self.door_type == "timed" then
+    love.graphics.draw(timed_gate, self.x-46, self.y-48)
+  elseif self.door_type == "full" then
+    love.graphics.draw(full_gate, self.x-18, self.y-48)
+  else
     love.graphics.setColor(0.85, 0.72, 0.28,1)
     assets.qdraw(self.current_anim:getFrame(), self.x - 6, self.y)
     love.graphics.setColor(1,1,1,1)
+  end
 end
 
 function mt:setAnim(name)

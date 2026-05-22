@@ -7,9 +7,14 @@ local mt = {}
 mt.__index = mt
 
 local fields = {
-  address = { x=20, y=35, w=200, h=30 },
-  port =    { x=20, y=75, w=120, h=30 },
-  key =     { x=20, y=115, w=200, h=30 },
+  address = { x=20, y=45, w=200, h=30 },
+  port =    { x=20, y=85, w=120, h=30 },
+  key =     { x=20, y=125, w=200, h=30 },
+}
+
+local buttons = {
+  singleplay ={x=20,y=200,w=160,h=30},
+  multiplay ={x=220,y=200,w=160,h=30},
 }
 
 function mt:loadAssets()
@@ -18,10 +23,7 @@ function mt:loadAssets()
     self.title_image = Assets.load('assets/title.png', 'title')
   end
   if not self.title_font then
-    self.title_font = love.graphics.newFont("assets/upheavtt.ttf", 20)
-  end
-  if not self.small_font then
-    self.small_font = love.graphics.newFont("assets/upheavtt.ttf", 15)
+    self.title_font = love.graphics.newFont("assets/ari_dis.ttf", 11)
   end
 end
 function mt:update(dt)
@@ -30,15 +32,6 @@ function mt:update(dt)
   -- Network update
   if self.network_instance then
     self.network_instance:update()
-  end
-  
-  if self.player:pressed("back") then
-    love.keyboard.setTextInput(false)
-    GameState.setCurrent('Play',0)
-    return
-  end
-  if self.player:pressed("jump") then
-    self:connectToServer()
   end
 end
 
@@ -57,7 +50,7 @@ function mt:draw(screen)
   love.graphics.setColor(self.active_field == "address" and {1,1,0,1} or {1,1,1,1})
   love.graphics.rectangle("line", fields.address.x, fields.address.y, fields.address.w, fields.address.h)
   love.graphics.setColor(1,1,1,1)
-  love.graphics.print(self.server_address, fields.address.x + 10, fields.address.y + 5)
+  love.graphics.print(self.server_address, fields.address.x + 15, fields.address.y + 10)
 
   -- Port
   love.graphics.setColor(1,1,1,1)
@@ -65,7 +58,7 @@ function mt:draw(screen)
   love.graphics.setColor(self.active_field == "port" and {1,1,0,1} or {1,1,1,1})
   love.graphics.rectangle("line", fields.port.x, fields.port.y, fields.port.w, fields.port.h)
   love.graphics.setColor(1,1,1,1)
-  love.graphics.print(self.server_port, fields.port.x + 10, fields.port.y + 5)
+  love.graphics.print(self.server_port, fields.port.x + 15, fields.port.y + 10)
 
   -- Encryption Key
   love.graphics.setColor(1,1,1,1)
@@ -74,33 +67,41 @@ function mt:draw(screen)
   love.graphics.setColor(self.active_field == "key" and {1,1,0,1} or {1,1,1,1})
   love.graphics.rectangle("line", fields.key.x, fields.key.y, fields.key.w, fields.key.h)
   love.graphics.setColor(1,1,1,1)
-  love.graphics.print(string.rep("*", #self.encryption_key), fields.key.x + 10, fields.key.y + 5)
+  love.graphics.print(string.rep("*", #self.encryption_key), fields.key.x + 15, fields.key.y + 10)
 
   -- Connection Status and Error Message
-  love.graphics.setFont(self.small_font)
-  local status_y = fields.key.y + 35
+  --love.graphics.setFont(self.small_font)
+  local status_y = 10
   
   if self.network_instance and self.network_instance:isConnected() then
     love.graphics.setColor(0.2, 1, 0.2, 1)
-    love.graphics.print("Status: Connected & Verified", 20, status_y)
+    love.graphics.print("Connected & Verified", 240 - string.len("Not logged in"), status_y)
   elseif self.network_instance and self.network_instance.connected then
     love.graphics.setColor(1, 1, 0.2, 1)
-    love.graphics.print("Status: Connected (waiting for verification...)", 20, status_y)
+    love.graphics.print("Connected (waiting to verify...)", 240 - string.len("Not logged in"), status_y)
   else
     love.graphics.setColor(1, 0.2, 0.2, 1)
-    love.graphics.print("Status: Disconnected", 20, status_y)
+    love.graphics.print("Disconnected", 240 - string.len("Not logged in"), status_y)
   end
   
   -- Display error message if any
   if self.network_instance and self.network_instance:getLastError() then
     love.graphics.setColor(1, 0.5, 0.5, 1)
-    love.graphics.print("Error: " .. self.network_instance:getLastError(), 20, status_y + 25)
+    love.graphics.print("Error: " .. self.network_instance:getLastError(), 20, status_y + 15)
   end
 
   -- Instructions
   love.graphics.setColor(0.7, 0.7, 0.7, 1)
-  love.graphics.print("Click a field to edit", 20, status_y + 30)
-  love.graphics.print("Press (jump) to connect or (change) to go back", 20, status_y + 50)
+  love.graphics.print("Click a field to edit", 20, status_y + 150)
+  
+  love.graphics.setColor(0, 0, 0, 1)
+  love.graphics.rectangle("fill", buttons.singleplay.x, buttons.singleplay.y, buttons.singleplay.w, buttons.singleplay.h)
+  love.graphics.rectangle("fill", buttons.multiplay.x, buttons.multiplay.y, buttons.multiplay.w, buttons.multiplay.h)
+  love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.rectangle("line", buttons.singleplay.x, buttons.singleplay.y, buttons.singleplay.w, buttons.singleplay.h)
+  love.graphics.rectangle("line", buttons.multiplay.x, buttons.multiplay.y, buttons.multiplay.w, buttons.multiplay.h)
+  love.graphics.printf("CONNECT", buttons.singleplay.x-20, buttons.singleplay.y+10, buttons.singleplay.y+2, "center")
+  love.graphics.printf("BACK", buttons.multiplay.x-20, buttons.multiplay.y+10, buttons.multiplay.y, "center")
   
   if love._console =="3DS" and screen ~= "bottom" then
     love.graphics.draw(self.title_image,0,0)
@@ -115,33 +116,61 @@ function mt:activateField(fname)
 end
 
 function mt:mousepressed(x, y, button)
-  if button ~= 1 then return end
-  
-  for fname, rect in pairs(fields) do
-    if x >= rect.x*3 and x <= rect.x*3 + rect.w*3 and y >= rect.y*3 and y <= rect.y*3 + rect.h*3 then
-      self:activateField(fname)
+    if button ~= 1 then return end
+
+    for fname, rect in pairs(fields) do
+        if x >= rect.x*3 and x <= rect.x*3 + rect.w*3
+        and y >= rect.y*3 and y <= rect.y*3 + rect.h*3 then
+            self:activateField(fname)
+            return
+        end
+    end
+
+  if x >= buttons.singleplay.x*3 and x <= buttons.singleplay.x*3 + buttons.singleplay.w*3
+    and y >= buttons.singleplay.y*3 and y <= buttons.singleplay.y*3 + buttons.singleplay.h*3 then
+      self:connectToServer()
       return
     end
-  end
-  
-  self.active_field = nil
-  self.field_just_activated = false
-  love.keyboard.setTextInput(false)
+    
+  if x >= buttons.multiplay.x*3 and x <= buttons.multiplay.x*3 + buttons.multiplay.w*3
+    and y >= buttons.multiplay.y*3 and y <= buttons.multiplay.y*3 + buttons.multiplay.h*3 then
+      love.keyboard.setTextInput(false)
+      GameState.setCurrent('Play',0)
+      return
+    end
+    
+    self.active_field = nil
+    self.field_just_activated = false
+    love.keyboard.setTextInput(false)
 end
 
 function mt:touchpressed(id, x, y, dx, dy, pressure)
-  if pressure ~= 1 then return end
-  
-  for fname, rect in pairs(fields) do
-    if x >= rect.x and x <= rect.x + rect.w and y >= rect.y and y <= rect.y + rect.h then
-      self:activateField(fname)
+    if pressure ~= 1 then return end
+
+    for fname, rect in pairs(fields) do
+        if x >= rect.x and x <= rect.x + rect.w
+        and y >= rect.y and y <= rect.y + rect.h then
+            self:activateField(fname)
+            return
+        end
+    end
+    
+  if x >= buttons.singleplay.x*3 and x <= buttons.singleplay.x*3 + buttons.singleplay.w*3
+    and y >= buttons.singleplay.y*3 and y <= buttons.singleplay.y*3 + buttons.singleplay.h*3 then
+      self:connectToServer()
       return
     end
-  end
-  
-  self.active_field = nil
-  self.field_just_activated = false
-  love.keyboard.setTextInput(false)
+    
+  if x >= buttons.multiplay.x*3 and x <= buttons.multiplay.x*3 + buttons.multiplay.w*3
+    and y >= buttons.multiplay.y*3 and y <= buttons.multiplay.y*3 + buttons.multiplay.h*3 then
+      love.keyboard.setTextInput(false)
+      GameState.setCurrent('Play',0)
+      return
+    end
+
+    self.active_field = nil
+    self.field_just_activated = false
+    love.keyboard.setTextInput(false)
 end
 
 function mt:keypressed(key)
@@ -234,7 +263,7 @@ return {
   new = function()
     local state = setmetatable({
       name = 'Settings_State',
-      server_address = "192.168.1.11",
+      server_address = "000.000.00.000",
       server_port = "12345",
       encryption_key = "default-key",
       active_field = nil,

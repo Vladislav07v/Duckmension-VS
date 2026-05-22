@@ -11,7 +11,7 @@ function mt:loadAssets()
     self.title_image = Assets.load('assets/title.png', 'title')
   end
   if not self.font then
-    self.font = love.graphics.newFont("assets/upheavtt.ttf", 20)
+    self.font = love.graphics.newFont("assets/ari_dis.ttf", 11)
   end
 end
 

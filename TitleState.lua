@@ -5,7 +5,7 @@ local Assets = require('assets_shared')
 local mt = {}
 mt.__index = mt
 
-local fields = {
+local buttons = {
   singleplay ={x=20,y=200,w=160,h=30},
   multiplay ={x=220,y=200,w=160,h=30},
   }
@@ -19,17 +19,7 @@ function mt:loadAssets()
     self.bottom_image = Assets.load('assets/bg_dark.png', 'bg_dark')
   end
   if not self.title_font then
-    self.title_font = love.graphics.newFont("assets/upheavtt.ttf", 20)
-  end
-end
-
-function mt:update(dt)
-  self.player:update()
-  if self.player:pressed("start") then
-    GameState.setCurrent('LevelSelect', 0)
-  end
-  if self.player:pressed("change") then
-    GameState.setCurrent('Settings')
+    self.title_font = love.graphics.newFont("assets/ari_dis.ttf", 11)
   end
 end
 
@@ -53,17 +43,49 @@ function mt:draw(screen)
     end
   else
       love.graphics.setColor(0, 0, 0, 1)
-  love.graphics.rectangle("fill", fields.singleplay.x, fields.singleplay.y, fields.singleplay.w, fields.singleplay.h)
-  love.graphics.rectangle("fill", fields.multiplay.x, fields.multiplay.y, fields.multiplay.w, fields.multiplay.h)
+  love.graphics.rectangle("fill", buttons.singleplay.x, buttons.singleplay.y, buttons.singleplay.w, buttons.singleplay.h)
+  love.graphics.rectangle("fill", buttons.multiplay.x, buttons.multiplay.y, buttons.multiplay.w, buttons.multiplay.h)
     love.graphics.setColor(1, 1, 1, 1)
-  love.graphics.rectangle("line", fields.singleplay.x, fields.singleplay.y, fields.singleplay.w, fields.singleplay.h)
-  love.graphics.rectangle("line", fields.multiplay.x, fields.multiplay.y, fields.multiplay.w, fields.multiplay.h)
-  love.graphics.printf("Singleplay (Z)", fields.singleplay.x-20, fields.singleplay.y+5, fields.singleplay.y+2, "center")
-  love.graphics.printf("Multiplay (X)", fields.multiplay.x-20, fields.multiplay.y+5, fields.multiplay.y, "center")
+  love.graphics.rectangle("line", buttons.singleplay.x, buttons.singleplay.y, buttons.singleplay.w, buttons.singleplay.h)
+  love.graphics.rectangle("line", buttons.multiplay.x, buttons.multiplay.y, buttons.multiplay.w, buttons.multiplay.h)
+  love.graphics.printf("SINGLEPLAYER", buttons.singleplay.x-20, buttons.singleplay.y+10, buttons.singleplay.y+2, "center")
+  love.graphics.printf("MULTIPLAYER", buttons.multiplay.x-20, buttons.multiplay.y+10, buttons.multiplay.y, "center")
   end
 end
 
 function mt:trigger() end
+
+function mt:mousepressed(x, y, button)
+  if button ~= 1 then return end
+
+  if x >= buttons.singleplay.x*3 and x <= buttons.singleplay.x*3 + buttons.singleplay.w*3
+    and y >= buttons.singleplay.y*3 and y <= buttons.singleplay.y*3 + buttons.singleplay.h*3 then
+      GameState.setCurrent('LevelSelect', 0)
+      return
+    end
+    
+  if x >= buttons.multiplay.x*3 and x <= buttons.multiplay.x*3 + buttons.multiplay.w*3
+    and y >= buttons.multiplay.y*3 and y <= buttons.multiplay.y*3 + buttons.multiplay.h*3 then
+      GameState.setCurrent('Login')
+      return
+    end
+end
+
+function mt:touchpressed(id, x, y, dx, dy, pressure)
+    if pressure ~= 1 then return end
+
+  if x >= buttons.singleplay.x*3 and x <= buttons.singleplay.x*3 + buttons.singleplay.w*3
+    and y >= buttons.singleplay.y*3 and y <= buttons.singleplay.y*3 + buttons.singleplay.h*3 then
+      GameState.setCurrent('LevelSelect', 0)
+      return
+    end
+    
+  if x >= buttons.multiplay.x*3 and x <= buttons.multiplay.x*3 + buttons.multiplay.w*3
+    and y >= buttons.multiplay.y*3 and y <= buttons.multiplay.y*3 + buttons.multiplay.h*3 then
+      GameState.setCurrent('Login')
+      return
+    end
+end
 
 return {
   new = function()

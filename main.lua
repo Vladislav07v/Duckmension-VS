@@ -11,9 +11,8 @@ local MAX_DT = 0.25                 -- clamp incoming dt to avoid spiral-of-deat
 local accumulator = 0
 
 function love.load()
-  GameState.setCurrent('Title')
   love.graphics.setDefaultFilter('nearest', 'nearest')
-  
+  GameState.setCurrent('Title')
 end
 
 function love.update(dt)

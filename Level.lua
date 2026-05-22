@@ -32,6 +32,7 @@ local TILES_TYPES = {
   [3] = require('ReverseToggleFloor'),
   [4] = require('Door'),
   [41] = require('Door', { DoorType = 'timed', TargetLevel = 1 }),
+  [42] = require('Door', { DoorType = 'full', TargetLevel = 1 }),
   --[5] = require('Spikes'),
   [6] = require('Trampoline'),
   [7] = require('Button'),
