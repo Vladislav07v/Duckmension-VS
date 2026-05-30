@@ -126,51 +126,41 @@ function mt:mousepressed(x, y, button)
         end
     end
 
-  if x >= buttons.singleplay.x*3 and x <= buttons.singleplay.x*3 + buttons.singleplay.w*3
-    and y >= buttons.singleplay.y*3 and y <= buttons.singleplay.y*3 + buttons.singleplay.h*3 then
-      self:connectToServer()
-      return
+    if x >= buttons.singleplay.x*3 and x <= buttons.singleplay.x*3 + buttons.singleplay.w*3
+      and y >= buttons.singleplay.y*3 and y <= buttons.singleplay.y*3 + buttons.singleplay.h*3 then
+        self:connectToServer()
+        return
     end
     
-  if x >= buttons.multiplay.x*3 and x <= buttons.multiplay.x*3 + buttons.multiplay.w*3
-    and y >= buttons.multiplay.y*3 and y <= buttons.multiplay.y*3 + buttons.multiplay.h*3 then
-      love.keyboard.setTextInput(false)
-      GameState.setCurrent('Play',0)
-      return
+    if x >= buttons.multiplay.x*3 and x <= buttons.multiplay.x*3 + buttons.multiplay.w*3
+      and y >= buttons.multiplay.y*3 and y <= buttons.multiplay.y*3 + buttons.multiplay.h*3 then
+        GameState.setCurrent('Play',0)
+        return
     end
-    
-    self.active_field = nil
-    self.field_just_activated = false
-    love.keyboard.setTextInput(false)
 end
 
 function mt:touchpressed(id, x, y, dx, dy, pressure)
-    if pressure ~= 1 then return end
+    if button ~= 1 then return end
 
     for fname, rect in pairs(fields) do
-        if x >= rect.x and x <= rect.x + rect.w
-        and y >= rect.y and y <= rect.y + rect.h then
+        if x >= rect.x*3 and x <= rect.x*3 + rect.w*3
+        and y >= rect.y*3 and y <= rect.y*3 + rect.h*3 then
             self:activateField(fname)
             return
         end
     end
-    
-  if x >= buttons.singleplay.x*3 and x <= buttons.singleplay.x*3 + buttons.singleplay.w*3
-    and y >= buttons.singleplay.y*3 and y <= buttons.singleplay.y*3 + buttons.singleplay.h*3 then
-      self:connectToServer()
-      return
-    end
-    
-  if x >= buttons.multiplay.x*3 and x <= buttons.multiplay.x*3 + buttons.multiplay.w*3
-    and y >= buttons.multiplay.y*3 and y <= buttons.multiplay.y*3 + buttons.multiplay.h*3 then
-      love.keyboard.setTextInput(false)
-      GameState.setCurrent('Play',0)
-      return
-    end
 
-    self.active_field = nil
-    self.field_just_activated = false
-    love.keyboard.setTextInput(false)
+    if x >= buttons.singleplay.x*3 and x <= buttons.singleplay.x*3 + buttons.singleplay.w*3
+      and y >= buttons.singleplay.y*3 and y <= buttons.singleplay.y*3 + buttons.singleplay.h*3 then
+        self:connectToServer()
+        return
+    end
+    
+    if x >= buttons.multiplay.x*3 and x <= buttons.multiplay.x*3 + buttons.multiplay.w*3
+      and y >= buttons.multiplay.y*3 and y <= buttons.multiplay.y*3 + buttons.multiplay.h*3 then
+        GameState.setCurrent('Play',0)
+        return
+    end
 end
 
 function mt:keypressed(key)
