@@ -18,6 +18,9 @@ local WEBSITE_PORT = 80
 local mt = {}
 mt.__index = mt
 
+-- Single centred button
+local button = {x=80, y=180, w=200, h=30}
+
 -- ── HTTP helpers (same pattern as LoginState) ─────────────────────────────────
 
 local function http_post(host, port, path, json_body)
@@ -113,47 +116,65 @@ local function sync_cookies(cookies_to_add)
     end
 end
 
+-- ── Shared action ─────────────────────────────────────────────────────────────
+
+local function doReturnToHub(state)
+    local earned = GameState.doors_passed or 0
+
+    if state.is_winner then
+        sync_cookies(earned)
+        GameState.coins = (GameState.coins or 0) + earned
+    end
+    GameState.doors_passed = 0
+
+    if GameState.network then
+        GameState.network:send("LEAVE_LOBBY")
+        GameState.network.lobby_state = nil
+        GameState.network.in_lobby    = false
+        GameState.network.winner_id   = nil
+        GameState.network.winner_name = nil
+    end
+
+    GameState.setCurrent('Play', 0)
+end
+
 -- ── State methods ─────────────────────────────────────────────────────────────
 
 function mt:update(dt)
     self.player:update()
 
     if self.player:pressed('jump') then
-        local earned = GameState.doors_passed or 0
-
-        if self.is_winner then
-            -- Winner: sync cookies to website then add to local coin total
-            sync_cookies(earned)
-            GameState.coins = (GameState.coins or 0) + earned
-        end
-        -- Everyone: reset doors_passed for the next match
-        GameState.doors_passed = 0
-
-        -- Clean up lobby state exactly once here (not in PlayState)
-        if GameState.network then
-            GameState.network:send("LEAVE_LOBBY")
-            GameState.network.lobby_state = nil
-            GameState.network.in_lobby    = false
-            GameState.network.winner_id   = nil
-            GameState.network.winner_name = nil
-        end
-
-        -- Return everyone to the hub, ready to create or join a new room
-        GameState.setCurrent('Play', 0)
+        doReturnToHub(self)
     end
 end
 
+local function handlePress(state, x, y)
+    if x >= button.x*3 and x <= button.x*3 + button.w*3
+    and y >= button.y*3 and y <= button.y*3 + button.h*3 then
+        doReturnToHub(state)
+    end
+end
+
+function mt:mousepressed(x, y, btn)
+    if btn ~= 1 then return end
+    handlePress(self, x, y)
+end
+
+function mt:touchpressed(id, x, y, dx, dy, pressure)
+    if pressure ~= 1 then return end
+    handlePress(self, x, y)
+end
+
 function mt:draw()
-    local font = love.graphics.newFont("assets/upheavtt.ttf", 20)
+    local font  = love.graphics.newFont("assets/upheavtt.ttf", 20)
     local small = love.graphics.newFont("assets/upheavtt.ttf", 15)
     love.graphics.setFont(font)
 
-    local earned     = GameState.doors_passed or 0
+    local earned      = GameState.doors_passed or 0
     local winner_name = "Unknown"
     if GameState.network and GameState.network.winner_name then
         winner_name = GameState.network.winner_name
     elseif self.is_winner and GameState.logged_in_user then
-        -- Offline / single-player win
         winner_name = GameState.logged_in_user
     end
 
@@ -189,9 +210,12 @@ function mt:draw()
         love.graphics.print(string.format("Doors passed: %d (not added to cookies)", earned), 80, 120)
     end
 
-    -- ── Prompt ────────────────────────────────────────────────────────────
-    love.graphics.setColor(0.8, 0.8, 0.8, 1)
-    love.graphics.print("Press (jump) to return to hub", 80, 170)
+    -- ── Return to hub button ──────────────────────────────────────────────
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.rectangle("fill", button.x, button.y, button.w, button.h)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("line", button.x, button.y, button.w, button.h)
+    love.graphics.printf("RETURN TO HUB (B)", button.x - 20, button.y + 8, button.w + 40, "center")
 end
 
 function mt:trigger() end
@@ -202,9 +226,8 @@ return {
     new = function(args)
         args = args or {}
         local state = setmetatable({
-            name       = 'Win',
-            -- Default to winner=true so offline single-player works unchanged
-            is_winner  = (args.is_winner ~= false),
+            name      = 'Win',
+            is_winner = (args.is_winner ~= false),
         }, mt)
 
         state.player = baton.new {

@@ -24,7 +24,19 @@ function mt:loadAssets()
     self.bottom_image = Assets.load('assets/bg_dark.png', 'bg_dark')
   end
   if not self.title_font then
-    self.title_font = love.graphics.newFont("assets/upheavtt.ttf", 20)
+    self.title_font = love.graphics.newFont("assets/ari_dis.ttf", 11)
+  end
+end
+
+function mt:update()
+  -- Left button: go to level select
+  if self.player:pressed("jump") then
+    GameState.setCurrent('LevelSelect')
+  end
+
+  -- Right button: go to login / multiplayer
+  if self.player:pressed("change") and not GameState.network then
+    GameState.setCurrent('Login')
   end
 end
 
@@ -43,8 +55,8 @@ function mt:draw(screen)
     love.graphics.setColor(1, 1, 1, 1)
   love.graphics.rectangle("line", 75, 110, 170, 20)
   love.graphics.rectangle("line",75,175,170,20)
-      love.graphics.printf("Singleplay (B)",20,110,280,"center")
-      love.graphics.printf("Multiplay (A)",20,175,280, "center")
+      love.graphics.printf("SINGLEPLAYER (B)",20,110,280,"center")
+      love.graphics.printf("MULTIPLAYER (A)",20,175,280, "center")
       -- DEBUG: draw hitboxes in green
       love.graphics.setColor(0, 1, 0, 1)
       love.graphics.rectangle("line", buttons3DS.singleplay.x, buttons3DS.singleplay.y, buttons3DS.singleplay.w, buttons3DS.singleplay.h)
@@ -57,8 +69,8 @@ function mt:draw(screen)
     love.graphics.setColor(1, 1, 1, 1)
   love.graphics.rectangle("line", buttons.singleplay.x, buttons.singleplay.y, buttons.singleplay.w, buttons.singleplay.h)
   love.graphics.rectangle("line", buttons.multiplay.x, buttons.multiplay.y, buttons.multiplay.w, buttons.multiplay.h)
-  love.graphics.printf("Singleplay", buttons.singleplay.x-20, buttons.singleplay.y+5, buttons.singleplay.y+2, "center")
-  love.graphics.printf("Multiplay", buttons.multiplay.x-20, buttons.multiplay.y+5, buttons.multiplay.y, "center")
+  love.graphics.printf("SINGLEPLAYER (B)", buttons.singleplay.x-20, buttons.singleplay.y+10, buttons.singleplay.y+2, "center")
+  love.graphics.printf("MULTIPLAYER (A)", buttons.multiplay.x-20, buttons.multiplay.y+10, buttons.multiplay.y, "center")
   -- DEBUG: draw hitboxes in green (hitbox coords are *3 scaled)
   love.graphics.setColor(0, 1, 0, 1)
   love.graphics.rectangle("line", buttons.singleplay.x*3, buttons.singleplay.y*3, buttons.singleplay.w*3, buttons.singleplay.h*3)
@@ -72,7 +84,7 @@ local function handlePress(x, y)
   if love._console == "3DS" then
     if x >= buttons3DS.singleplay.x and x <= buttons3DS.singleplay.x + buttons3DS.singleplay.w
       and y >= buttons3DS.singleplay.y and y <= buttons3DS.singleplay.y + buttons3DS.singleplay.h then
-        GameState.setCurrent('LevelSelect', 0)
+        GameState.setCurrent('LevelSelect')
         return
       end
     if x >= buttons3DS.multiplay.x and x <= buttons3DS.multiplay.x + buttons3DS.multiplay.w
@@ -109,8 +121,8 @@ return {
     local state = setmetatable({name = 'Title_State'}, mt)
     state.player = baton.new {
       controls = {
-        start = {'key:z','button:b','mouse:1'},
-        change = {'key:x','button:a'},
+        jump   = {'key:z', 'button:b', 'mouse:1'},
+        change = {'key:x', 'button:a'},
       },
       joystick = love.joystick.getJoysticks()[1],
       deadzone = .33,

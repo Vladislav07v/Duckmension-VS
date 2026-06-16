@@ -1,4 +1,4 @@
---require('nest-master/nest').init({console = "3ds", emulateJoystick="true", scale=2})
+require('nest-master/nest').init({console = "switch", emulateJoystick="true", scale=1})
 local GameState  = require('GameState')
 local TitleState = require('TitleState')
 local GUI = require('gui')
@@ -102,7 +102,7 @@ function love.draw(screen)
       love.graphics.print(love.timer.getFPS())
     end
   else
-    love.graphics.scale(3, 3)
+    love.graphics.scale(1, 1)
     local currentState = GameState.getCurrent()
     if currentState and currentState.background then
       love.graphics.draw(currentState.background)

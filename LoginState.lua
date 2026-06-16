@@ -139,6 +139,21 @@ end
 
 -- ── State methods ─────────────────────────────────────────────────────────────
 
+function mt:update(dt)
+    self.player:update()
+
+    -- Left button: submit login
+    if self.player:pressed('jump') then
+        self:submit()
+    end
+
+    -- Right button: return to title
+    if self.player:pressed('change') then
+        love.keyboard.setTextInput(false)
+        GameState.setCurrent('Title')
+    end
+end
+
 function mt:loadAssets()
     if not self.title_image then
         self.title_image = love.graphics.newImage('assets/title.png')
@@ -353,8 +368,8 @@ function mt:draw(screen)
   love.graphics.setColor(1, 1, 1, 1)
   love.graphics.rectangle("line", buttons.singleplay.x, buttons.singleplay.y, buttons.singleplay.w, buttons.singleplay.h)
   love.graphics.rectangle("line", buttons.multiplay.x, buttons.multiplay.y, buttons.multiplay.w, buttons.multiplay.h)
-  love.graphics.printf("LOGIN", buttons.singleplay.x-20, buttons.singleplay.y+10, buttons.singleplay.y+2, "center")
-  love.graphics.printf("BACK", buttons.multiplay.x-20, buttons.multiplay.y+10, buttons.multiplay.y, "center")
+  love.graphics.printf("LOGIN (B)", buttons.singleplay.x-20, buttons.singleplay.y+10, buttons.singleplay.y+2, "center")
+  love.graphics.printf("BACK (A)", buttons.multiplay.x-20, buttons.multiplay.y+10, buttons.multiplay.y, "center")
   
     if love._console == "3DS" and screen ~= "bottom" then
         love.graphics.draw(self.title_image, 0, 0)
@@ -379,8 +394,8 @@ return {
 
         state.player = baton.new {
             controls = {
-                jump = { 'key:return', 'button:b' },
-                back = { 'key:escape', 'button:back' },
+                jump   = { 'key:return', 'button:b' },
+                change = { 'key:escape', 'button:back' },
             },
             joystick = love.joystick.getJoysticks()[1],
             deadzone = .33,
